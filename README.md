@@ -2,7 +2,9 @@
 
 Salesforce **Agentforce** sample project focused on **Slack**: employee agents, Slack connections, and automation that posts to Slack (for example time audits and project notifications).
 
-Use this repo as a companion to sessions about **Agentforce + Slack** (for example TrailblazerDX). Point a QR code at the GitHub URL so attendees can clone the project and follow the setup below.
+Use this repo as a companion to sessions about **Agentforce + Slack** (for example TrailblazerDX). Point a QR code at this URL so attendees land here:
+
+**https://github.com/emoralesventix/Agentforce-Slack**
 
 ---
 
