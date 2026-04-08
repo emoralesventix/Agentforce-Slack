@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>58.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <description>Evaluates if the opportunity&apos;s associated Account Name equals &apos;Pepito&apos; to determine if description should be updated</description>
+        <name>Check_Account_Name_Pepito</name>
+        <label>Check Account Name Pepito</label>
+        <locationX>446</locationX>
+        <locationY>431</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Account_Name_Is_Pepito</name>
+            <conditionLogic>1</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Account.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Pepito</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Description_to_Test</targetReference>
+            </connector>
+            <label>Account Name Is Pepito</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Evaluates if the opportunity type is New Business and routes accordingly</description>
+        <name>Check_If_New_Business</name>
+        <label>Check If New Business</label>
+        <locationX>248</locationX>
+        <locationY>323</locationY>
+        <defaultConnector>
+            <targetReference>Check_Account_Name_Pepito</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Is_New_Business</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Type</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>New Business</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Opportunity_to_Close_Lost</targetReference>
+            </connector>
+            <label>Is New Business</label>
+        </rules>
+    </decisions>
+    <description>AI Generated flow for you update the opportunity to Close Lost when Revenue...</description>
+    <environments>Default</environments>
+    <interviewLabel>AI Generated Flow for you update the opportunity to Close Lost when Revenue...</interviewLabel>
+    <label>Flow con AI</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>GptId</name>
+        <value>
+            <stringValue>43a2947e-2a56-4674-a2aa-f688b69b37f1</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>GptLlmIds</name>
+        <value>
+            <stringValue>[&quot;666a5b18-6b17-4241-8846-1fd92c30f082&quot;]</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <description>Updates the triggering opportunity record&apos;s Description field to &apos;Test&apos; when the Account Name condition is met</description>
+        <name>Update_Description_to_Test</name>
+        <label>Update Description to Test</label>
+        <locationX>314</locationX>
+        <locationY>539</locationY>
+        <inputAssignments>
+            <field>Description</field>
+            <value>
+                <stringValue>Test</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Can you update the opportunity to Close Lost when Revenue is greather than 10000</description>
+        <name>Update_Opportunity_to_Close_Lost</name>
+        <label>Update Opportunity to Close Lost</label>
+        <locationX>50</locationX>
+        <locationY>431</locationY>
+        <inputAssignments>
+            <field>StageName</field>
+            <value>
+                <stringValue>Close Lost</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>122</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Check_If_New_Business</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>ExpectedRevenue</field>
+            <operator>GreaterThan</operator>
+            <value>
+                <numberValue>100000.0</numberValue>
+            </value>
+        </filters>
+        <object>Opportunity</object>
+        <recordTriggerType>Update</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

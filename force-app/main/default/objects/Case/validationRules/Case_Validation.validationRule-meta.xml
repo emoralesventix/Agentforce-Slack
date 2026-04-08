@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Case_Validation</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(ISPICKVAL(Status,&apos;Closed&apos;), ISPICKVAL(Send_Customer_Survey__c,&apos;&apos;))</errorConditionFormula>
+    <errorMessage>Send Customer Survey needs to be either Yes or No in order to close the case</errorMessage>
+</ValidationRule>

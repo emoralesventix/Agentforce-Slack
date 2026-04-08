@@ -1,0 +1,325 @@
+system:
+    instructions: "You are an AI Agent."
+
+    messages:
+        welcome: |
+            Hi, I'm Agentforce! I can help you submit time entries from Slack.
+        error: "Something went wrong. Try again."
+
+config:
+    agent_label: "Vantegrate Agentforce"
+    developer_name: "Vantegrate_Agent"
+    agent_type: "AgentforceEmployeeAgent"
+    description: "Submit Time Entries from Slack messages using Date + Note + Amount lines."
+
+language:
+    default_locale: "en_US"
+    additional_locales: "en_GB"
+    all_additional_locales: False
+
+variables:
+    currentRecordId: mutable string
+        description: "Salesforce ID available in context."
+        visibility: "External"
+
+knowledge:
+    citations_enabled: False
+
+start_agent topic_selector:
+    label: "Topic Selector"
+
+    description: "Route incoming requests to Time Tracking."
+
+    reasoning:
+        instructions: ->
+            | Route all user intents related to logging time to Time_Tracking.
+
+        actions:
+            go_to_Time_Tracking: @utils.transition to @topic.Time_Tracking
+                description: "Handle time entry submission from Slack text."
+
+connection slack:
+    empty
+
+topic Time_Tracking:
+    label: "Time Tracking"
+
+    description: "Submit multiple Time_Entry__c records from a single Slack message. Each line: Date + Note + Amount."
+
+    reasoning:
+        instructions: ->
+            | Detect user intent to log time.
+            | Accept one or multiple lines in the format Date + Note + Amount.
+            | Call SubmitTimeEntries with raw text.
+            | If there are both successes and failures, acknowledge both clearly.
+            | Include weekly utilization and warnings when present.
+            | Prefer thread reply when context is available; otherwise use DM.
+
+        actions:
+            submit_entries: @actions.SubmitTimeEntries
+                with messageText = ...
+                with actingUserId = @variables.currentRecordId
+                with optionalProject = ...
+
+            SendMessageToSlackChannel: @actions.SendMessageToSlackChannel
+                with channelId = ...
+                with message = ...
+
+            SendSlackDirectMessage: @actions.SendSlackDirectMessage
+                with slackUserId = ...
+                with message = ...
+
+            UpdateSlackCanvas: @actions.UpdateSlackCanvas
+                with canvasId = ...
+                with content = ...
+
+            CreateSlackCanvas: @actions.CreateSlackCanvas
+                with title = ...
+                with content = ...
+
+            ShareSlackCanvas: @actions.ShareSlackCanvas
+                with canvasId = ...
+                with userIds = ...
+                with channelIds = ...
+                with accessLevel = ...
+
+
+    actions:
+        SubmitTimeEntries:
+            description: "Parse Date + Note + Amount lines, create Time_Entry__c records, and return success/errors."
+            label: "Submit Time Entries"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Submitting your time entries..."
+            target: "apex://TimeTrackingService"
+            inputs:
+                messageText: string
+                    description: "Raw Slack message, possibly multi-line. Each non-empty line should contain Date + Note + Amount."
+                    label: "Message Text"
+                    is_required: True
+                    is_user_input: True
+                actingUserId: string
+                    description: "Salesforce User Id of the submitting user."
+                    label: "Acting User Id"
+                    is_required: False
+                    is_user_input: False
+                optionalProject: string
+                    description: "Optional project name or Id to disambiguate assignments."
+                    label: "Project (Optional)"
+                    is_required: False
+                    is_user_input: True
+            outputs:
+                createdEntries: list[object]
+                    description: "Created entries details."
+                    label: "Created Entries"
+                    filter_from_agent: False
+                    is_displayable: True
+                    complex_data_type_name: "lightning__textType"
+                weeklyUtilization: object
+                    description: "Weekly snapshot {weekKey, totalHours, capHours}."
+                    label: "Weekly Utilization"
+                    filter_from_agent: False
+                    is_displayable: True
+                    complex_data_type_name: "lightning__textType"
+                warnings: list[object]
+                    description: "Non-blocking warnings."
+                    label: "Warnings"
+                    filter_from_agent: False
+                    is_displayable: True
+                    complex_data_type_name: "lightning__textType"
+                errors: list[object]
+                    description: "Per-line errors."
+                    label: "Errors"
+                    filter_from_agent: False
+                    is_displayable: True
+                    complex_data_type_name: "lightning__textType"
+        SendMessageToSlackChannel:
+            description: |
+                Sends a message to a public or private Slack Channel.
+                Messages may be in plaintext or Markdown format.
+                This action is intended for group communication, announcements, or notifications within channels.
+                This action should not be used to send direct messages to individuals.
+                Upon successful completion, provide the user a friendly confirmation with a link to the message (in markdown).
+            inputs:
+                channelId: string
+                    description: "The Slack Channel ID of the Slack Channel to send a message to."
+                    label: "Slack Channel ID"
+                    is_required: True
+                    is_user_input: True
+                message: string
+                    description: "Plain text or mrkdwn message to be sent to a user."
+                    label: "Slack Message"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                messageUrl: string
+                    description: "The Slack message URL for the sent message; opens in Slack."
+                    label: "Slack Message URL"
+                    filter_from_agent: False
+                    is_displayable: False
+                messageTs: string
+                    description: "The timestamp for when the message was sent in Slack."
+                    label: "Slack Message Timestamp"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "slack://slackAgentDynamic__SendMessageToSlackChannel"
+            label: "Send Message to a Slack Channel"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Sending message..."
+            source: "Slack__SendMessageToSlackChannel"
+
+        SendSlackDirectMessage:
+            description: |
+                Given plain text or markdown text, send a direct message (DM) in Slack with the recipient and sender users in the DM channel.
+                You can add sections, include links, references, and any other information you deem relevant.
+                Provide the message url to the user along with a friendly message.
+                Upon successful completion, provide the user a friendly confirmation with a link to the message (in markdown).
+            inputs:
+                slackUserId: string
+                    description: "Slack user ID for the person who will receive the direct message."
+                    label: "Slack User Id"
+                    is_required: True
+                    is_user_input: True
+                message: string
+                    description: "Plain text or markdown message to be sent to a user."
+                    label: "Slack Message Content"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                channelId: string
+                    description: "The Slack direct message channel ID for the sent message."
+                    label: "Slack Channel Id"
+                    filter_from_agent: False
+                    is_displayable: False
+                messageUrl: string
+                    description: "The Slack direct message URL for the sent message; opens in Slack."
+                    label: "Slack Message URL"
+                    filter_from_agent: False
+                    is_displayable: False
+                messageTs: string
+                    description: "The timestamp for when the direct message was sent in Slack."
+                    label: "Slack Message Timestamp"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://slackAgentSendDirectMessage"
+            label: "Send a Slack Direct Message"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Sending Slack direct message..."
+            source: "Slack__SendSlackDirectMessage"
+
+        UpdateSlackCanvas:
+            description: |
+                Append markdown content to a Slack canvas document.
+                Always append new content and never duplicate content that was added in earlier prompts.
+                If no canvas ID is provided or it is ambiguous in the session context, confirm which canvas ID the user intends to update.
+                Upon successful completion, provide the user a friendly confirmation with a link to the canvas (in markdown).
+            inputs:
+                canvasId: string
+                    description: "Unique identifier of the existing canvas to be updated (e.g. F017CC8EGRG)."
+                    label: "Slack Canvas ID"
+                    is_required: True
+                    is_user_input: False
+                content: string
+                    description: "Markdown representation of canvas content."
+                    label: "Content"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                canvasId: string
+                    description: "The Slack canvas ID for the updated canvas."
+                    label: "Slack Canvas ID"
+                    filter_from_agent: False
+                    is_displayable: False
+                canvasUrl: string
+                    description: "The Slack canvas URL for the updated canvas."
+                    label: "Slack Canvas URL"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://slackAgentUpdateCanvas"
+            label: "Update a Slack Canvas"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Updating Slack canvas..."
+            source: "Slack__UpdateSlackCanvas"
+
+        CreateSlackCanvas:
+            description: |
+                Create a Slack canvas document with the provided markdown content.
+                You can add sections, include links, references, and any other information you deem relevant.
+                When asked to create a canvas with prior content, ask the user whether there is a desired outline with sections, formatting, and sequencing preferred before creating the canvas.
+                Upon successful completion, provide the user a friendly confirmation including the canvas link in markdown.
+            inputs:
+                title: string
+                    description: "Concise but descriptive name for the canvas"
+                    label: "Title"
+                    is_required: True
+                    is_user_input: True
+                content: string
+                    description: "Markdown representation of canvas content."
+                    label: "Content"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                canvasId: string
+                    description: "The new Slack canvas ID."
+                    label: "Slack Canvas ID"
+                    filter_from_agent: False
+                    is_displayable: False
+                canvasUrl: string
+                    description: "The new Slack canvas URL."
+                    label: "Slack Canvas URL"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://slackAgentCreateCanvas"
+            label: "Create a Slack Canvas"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Creating Slack canvas..."
+            source: "Slack__CreateSlackCanvas"
+
+        ShareSlackCanvas:
+            description: |
+                Shares a Slack Canvas with a set of users and/or channels.
+                If neither a list of Slack Users nor Slack Channels to to add to the channel is provided, ask the user for a list of Slack Users and/or Slack Channels to share the Canvas with.
+                If the user does not provide an access level for the shared Canvas, ask the user for it.
+                Upon successful completion, provide the user a friendly confirmation with a link to the canvas (in markdown) and at-mentions for the channels and/or Users the Canvas was shared with.
+            inputs:
+                canvasId: string
+                    description: "Unique identifier of the existing canvas to share (e.g. F017CC8EGRG)."
+                    label: "Slack Canvas ID"
+                    is_required: True
+                    is_user_input: True
+                userIds: string
+                    description: "A comma-separated list of Slack User IDs to share the provided Slack Canvas with."
+                    label: "Slack User IDs"
+                    is_required: False
+                    is_user_input: True
+                channelIds: string
+                    description: "A comma-separated list of Slack Channel IDs to share the provided Slack Canvas with."
+                    label: "Slack Channel IDs"
+                    is_required: False
+                    is_user_input: True
+                accessLevel: string
+                    description: "The access level for the shared Slack Canvas: view or edit."
+                    label: "accessLevel"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                canvasId: string
+                    description: "The Slack canvas ID for the updated canvas."
+                    label: "Slack Canvas ID"
+                    filter_from_agent: False
+                    is_displayable: False
+                canvasUrl: string
+                    description: "The Slack canvas URL for the updated canvas."
+                    label: "Slack Canvas URL"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "slack://slackAgentDynamic__ShareSlackCanvas"
+            label: "Share a Slack Canvas"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Sharing a Slack canvas..."
+            source: "Slack__ShareSlackCanvas"

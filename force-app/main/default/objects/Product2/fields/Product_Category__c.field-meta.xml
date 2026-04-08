@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Product_Category__c</fullName>
+    <label>Product Category</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Battery Systems</fullName>
+                <default>false</default>
+                <label>Battery Systems</label>
+            </value>
+            <value>
+                <fullName>Cable Systems</fullName>
+                <default>false</default>
+                <label>Cable Systems</label>
+            </value>
+            <value>
+                <fullName>Camera Systems</fullName>
+                <default>false</default>
+                <label>Camera Systems</label>
+            </value>
+            <value>
+                <fullName>Cleaning Supplies</fullName>
+                <default>false</default>
+                <label>Cleaning Supplies</label>
+            </value>
+            <value>
+                <fullName>Communication Equipment</fullName>
+                <default>false</default>
+                <label>Communication Equipment</label>
+            </value>
+            <value>
+                <fullName>Control Equipment</fullName>
+                <default>false</default>
+                <label>Control Equipment</label>
+            </value>
+            <value>
+                <fullName>Cooling Systems</fullName>
+                <default>false</default>
+                <label>Cooling Systems</label>
+            </value>
+            <value>
+                <fullName>Drone Systems</fullName>
+                <default>false</default>
+                <label>Drone Systems</label>
+            </value>
+            <value>
+                <fullName>Electronic Components</fullName>
+                <default>false</default>
+                <label>Electronic Components</label>
+            </value>
+            <value>
+                <fullName>Foundation Systems</fullName>
+                <default>false</default>
+                <label>Foundation Systems</label>
+            </value>
+            <value>
+                <fullName>Generator Systems</fullName>
+                <default>false</default>
+                <label>Generator Systems</label>
+            </value>
+            <value>
+                <fullName>Grounding Equipment</fullName>
+                <default>false</default>
+                <label>Grounding Equipment</label>
+            </value>
+            <value>
+                <fullName>Hardware Components</fullName>
+                <default>false</default>
+                <label>Hardware Components</label>
+            </value>
+            <value>
+                <fullName>Heating Systems</fullName>
+                <default>false</default>
+                <label>Heating Systems</label>
+            </value>
+            <value>
+                <fullName>Installation Supplies</fullName>
+                <default>false</default>
+                <label>Installation Supplies</label>
+            </value>
+            <value>
+                <fullName>Insulation Equipment</fullName>
+                <default>false</default>
+                <label>Insulation Equipment</label>
+            </value>
+            <value>
+                <fullName>Lubrication Supplies</fullName>
+                <default>false</default>
+                <label>Lubrication Supplies</label>
+            </value>
+            <value>
+                <fullName>Machinery</fullName>
+                <default>false</default>
+                <label>Machinery</label>
+            </value>
+            <value>
+                <fullName>Measurement Equipment</fullName>
+                <default>false</default>
+                <label>Measurement Equipment</label>
+            </value>
+            <value>
+                <fullName>Mechanical Systems</fullName>
+                <default>false</default>
+                <label>Mechanical Systems</label>
+            </value>
+            <value>
+                <fullName>Monitoring Equipment</fullName>
+                <default>false</default>
+                <label>Monitoring Equipment</label>
+            </value>
+            <value>
+                <fullName>Power Electronics</fullName>
+                <default>false</default>
+                <label>Power Electronics</label>
+            </value>
+            <value>
+                <fullName>Power Quality Equipment</fullName>
+                <default>false</default>
+                <label>Power Quality Equipment</label>
+            </value>
+            <value>
+                <fullName>Protection Equipment</fullName>
+                <default>false</default>
+                <label>Protection Equipment</label>
+            </value>
+            <value>
+                <fullName>Rack Systems</fullName>
+                <default>false</default>
+                <label>Rack Systems</label>
+            </value>
+            <value>
+                <fullName>Recording Equipment</fullName>
+                <default>false</default>
+                <label>Recording Equipment</label>
+            </value>
+            <value>
+                <fullName>Regulation Equipment</fullName>
+                <default>false</default>
+                <label>Regulation Equipment</label>
+            </value>
+            <value>
+                <fullName>Safety Equipment</fullName>
+                <default>false</default>
+                <label>Safety Equipment</label>
+            </value>
+            <value>
+                <fullName>Safety Systems</fullName>
+                <default>false</default>
+                <label>Safety Systems</label>
+            </value>
+            <value>
+                <fullName>Sealing Supplies</fullName>
+                <default>false</default>
+                <label>Sealing Supplies</label>
+            </value>
+            <value>
+                <fullName>Sensor Equipment</fullName>
+                <default>false</default>
+                <label>Sensor Equipment</label>
+            </value>
+            <value>
+                <fullName>Solar Equipment</fullName>
+                <default>false</default>
+                <label>Solar Equipment</label>
+            </value>
+            <value>
+                <fullName>Storage Systems</fullName>
+                <default>false</default>
+                <label>Storage Systems</label>
+            </value>
+            <value>
+                <fullName>Structural Systems</fullName>
+                <default>false</default>
+                <label>Structural Systems</label>
+            </value>
+            <value>
+                <fullName>Substation Equipment</fullName>
+                <default>false</default>
+                <label>Substation Equipment</label>
+            </value>
+            <value>
+                <fullName>Switchgear</fullName>
+                <default>false</default>
+                <label>Switchgear</label>
+            </value>
+            <value>
+                <fullName>Switching Components</fullName>
+                <default>false</default>
+                <label>Switching Components</label>
+            </value>
+            <value>
+                <fullName>Switching Equipment</fullName>
+                <default>false</default>
+                <label>Switching Equipment</label>
+            </value>
+            <value>
+                <fullName>Testing Equipment</fullName>
+                <default>false</default>
+                <label>Testing Equipment</label>
+            </value>
+            <value>
+                <fullName>Transmission Equipment</fullName>
+                <default>false</default>
+                <label>Transmission Equipment</label>
+            </value>
+            <value>
+                <fullName>Transformers</fullName>
+                <default>false</default>
+                <label>Transformers</label>
+            </value>
+            <value>
+                <fullName>Weather Equipment</fullName>
+                <default>false</default>
+                <label>Weather Equipment</label>
+            </value>
+            <value>
+                <fullName>Wind Equipment</fullName>
+                <default>false</default>
+                <label>Wind Equipment</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Week_Key__c</fullName>
+    <description>Key used to group time entries by week.</description>
+    <externalId>false</externalId>
+    <formula>TEXT(YEAR(Week_Start_Date__c)) &amp; &quot;-W&quot; &amp; LPAD(TEXT(CEILING((Week_Start_Date__c - DATE(YEAR(Week_Start_Date__c), 1, 1) + 1) / 7)), 2, &quot;0&quot;)</formula>
+    <label>Week Key</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

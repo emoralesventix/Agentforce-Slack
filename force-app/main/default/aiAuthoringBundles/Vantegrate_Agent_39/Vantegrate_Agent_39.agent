@@ -1,0 +1,508 @@
+system:
+    instructions: "You are an AI Agent. Never send an empty reply to the user: after any tool runs, always write at least one clear sentence in the same turn."
+
+    messages:
+        welcome: |
+            Hi! I'm Vantegrate Agentforce 👋
+            I can help you submit time entries from Slack in seconds ⏱️
+            Each line: Date ; Note ; hours (e.g. 2 or 2.5 for hours worked).
+            Examples:
+            - `2026-03-21 ; Project meeting ; 2`
+            - `today | Demo support | 1.5`
+            - `2026-03-21 Project meeting 3`
+        error: "Something went wrong. Try again."
+
+config:
+    agent_label: "Vantegrate Agentforce"
+    developer_name: "Vantegrate_Agent"
+    agent_type: "AgentforceEmployeeAgent"
+    description: "Help employees log time in Slack: each line is date, what they did, and hours worked."
+
+language:
+    default_locale: "en_US"
+    additional_locales: "en_GB"
+    all_additional_locales: False
+
+variables:
+    currentRecordId: mutable string
+        description: "Salesforce ID available in context."
+        visibility: "External"
+
+knowledge:
+    citations_enabled: False
+
+start_agent topic_selector:
+    label: "Topic Selector"
+
+    description: "Route incoming requests to Time Tracking."
+
+    reasoning:
+        instructions: ->
+            | PRIORITY 1: If user asks to submit/log/upload time (even if a project is mentioned), route to Time_Tracking.
+            | Time-submit examples: "submit 4 hours for TEST", "log time for Slack Demo Project", "upload 1 hour".
+            | PRIORITY 2: Route intents that ask to list/view projects or assignments to Project_List.
+            | Project-list keywords/examples: "projects", "proyectos", "assigned projects", "mis proyectos", "asignaciones", "what are my projects".
+            | PRIORITY 3: If the user asks for help/onboarding to log hours (examples: "help me submit hours", "can you help me", "how do I log time"), route to Project_List first.
+            | In help/onboarding intent, ALWAYS show assigned projects first and only then continue to time-entry guidance.
+            | If the message is only about listing projects, transition ONLY to Project_List.
+            | Route time-entry intents to Time_Tracking.
+            | If the user sends a short nudge (examples: "and?", "hello?", "well?", "?", "yes", "ok") immediately after they asked to list projects or log time, route to the same topic that handles that flow: Project_List for project-list context, Time_Tracking if their prior message clearly contained time to log. Never answer those nudges with an empty message.
+            | Use a friendly Slack-first tone with concise confirmations and emojis.
+
+        actions:
+            go_to_Project_List: @utils.transition to @topic.Project_List
+                description: "When user asks for assigned projects OR asks for help to submit time, list projects first."
+
+            go_to_Time_Tracking: @utils.transition to @topic.Time_Tracking
+                description: "Handle time entry submission from Slack text."
+
+connection slack:
+    empty
+
+topic Project_List:
+    label: "Project List"
+
+    description: "List assigned projects in a short bullet list."
+
+    reasoning:
+        instructions: ->
+            | MANDATORY: Call ListMyProjects (list_projects) before listing projects.
+            | Identity directive: use actingUserId from currentRecordId.
+            | ListMyProjects.message is JSON from Salesforce (not prose). Parse it as JSON. It has keys: source (string), actingUserId (string), projects (array of strings).
+            | If projects is empty or missing, reply exactly: ":information_source: I couldn't find assigned projects for your user."
+            | If projects has items: build ONLY from that array — header "Here are your assigned projects:", then one line per item formatted "- " plus the exact string from JSON (same order, no edits, no translation). Then a blank line, then exactly: "Which project do you want to submit time for?"
+            | FORBIDDEN: inventing names (Mercury, Apollo, Gemini, Orion, Alpha, Beta, Gamma, etc.) that do not appear in the JSON projects array.
+            | If message is not valid JSON (e.g. user-id error text from Apex), echo ListMyProjects.message exactly.
+            | Never end the turn with only the tool call and no text (no empty bubbles).
+
+        actions:
+            list_projects: @actions.ListMyProjects
+                with actingUserId = @variables.currentRecordId
+
+    actions:
+        ListMyProjects:
+            description: "Returns the list of projects assigned to the submitting user."
+            label: "List My Projects"
+            require_user_confirmation: False
+            include_in_progress_indicator: False
+            progress_indicator_message: "Loading your projects..."
+            target: "apex://TimeTrackingProjectService"
+            inputs:
+                actingUserId: string
+                    description: "Salesforce User Id of the submitting user."
+                    label: "Acting User Id"
+                    is_required: False
+                    is_user_input: False
+            outputs:
+                projectNames: list[object]
+                    description: "Project names assigned to the user."
+                    label: "Project Names"
+                    filter_from_agent: False
+                    is_displayable: True
+                    complex_data_type_name: "lightning__textType"
+                message: string
+                    description: "JSON: {source, actingUserId, projects[]}. Parse projects array for display names only."
+                    label: "Message"
+                    filter_from_agent: False
+                    is_displayable: True
+
+topic Time_Tracking:
+    label: "Time Tracking"
+
+    description: "Submit time from Slack: each line is date, short description of work, and hours worked (not dollars)."
+
+    reasoning:
+        instructions: ->
+            | Detect user intent to log time.
+            | Identity directive: use actingUserId from currentRecordId.
+            | CRITICAL: After EVERY SubmitTimeEntries call, in the SAME assistant turn you MUST print the full outcome: successes from createdEntries, weeklyUtilization, warnings, and errors. Never finish the turn with only the tool invocation and no user-visible text. Do not wait for the user to say "and?" or "hello?" before summarizing.
+            | Speak to the user in everyday language about TIME (hours and minutes). Never describe the third value as money, billing, or "amount" unless amountRepresentsHours is False and they explicitly sent a billing/currency workflow.
+            | If user asks for help or onboarding before providing entries, transition to Project_List first.
+            | Accept one or multiple lines in flexible formats:
+            | - Date ; Note ; hours
+            | - Date | Note | hours
+            | - Date Note hours
+            | If user sends bullets/numbered lines, convert them into clean lines before calling SubmitTimeEntries.
+            | Example normalization:
+            | - "- today ; Working on integration ; 2" -> "today ; Working on integration ; 2" (2 hours)
+            | - "1) today | Demo support | 1.5" -> "today | Demo support | 1.5" (1.5 hours)
+            | Relative dates are allowed too: HOY / AYER (and today / yesterday).
+            | CRITICAL RULE: If the user asks to list/view projects or assignments, call ListMyProjects first; parse ListMyProjects.message as JSON and list ONLY names from the projects array (same rules as Project_List topic).
+            | Project-list intent examples include: "projects", "proyectos", "assigned projects", "mis proyectos", "asignaciones", "what are my projects".
+            | In project-list intent, output only the tool message string; do not ask for time-entry format first.
+            | If user asks for help or "what are my projects", call ListMyProjects first and format from JSON projects array (or transition to Project_List).
+            | Call SubmitTimeEntries only when the user already provided entry lines.
+            | Call SubmitTimeEntries with normalized text and amountRepresentsHours = True for Slack (third token = hours worked). Use False only for finance workflows where the third number is billing currency to convert with Billing_Rate_Per_Hour__c.
+            | Examples: "today ; note ; 2" with amountRepresentsHours True = 2 hours of work. Never tell the user their entry is "0.02" without explaining it is hours — the tool already returns plain language ("2 hours", "30 minutes").
+            | If user sends natural language summary (e.g., "submit 4 hours for <project> with these notes") and it's not parseable yet:
+            | - Ask ONE concise follow-up: "Do you want me to split 4 hours equally across the notes?"
+            | - If user confirms, normalize to Date ; Note ; hours lines and then call SubmitTimeEntries.
+            | - If user does not confirm, ask for explicit Date ; Note ; hours lines.
+            | Extract optionalProject when user writes phrases like "for TEST" or "for Slack Demo Project".
+            | If optional project is not provided and the action returns multiple project options, show them as a clear list and ask the user to pick one project.
+            | If there are both successes and failures, acknowledge both clearly.
+            | Include weekly utilization and warnings when present.
+            | Prefer thread reply when context is available; otherwise use DM.
+            | Use friendly messages with Slack emojis:
+            | - Success header: ":white_check_mark: Your time entries were submitted!"
+            | - Mixed result header: ":warning: Some entries were submitted and some need fixes."
+            | - Validation header: ":information_source: I need one more detail."
+            | Keep responses short and readable with bullet points.
+            | For success responses, prefer the tool strings (they already say "Time logged: X hours"). Optional structure:
+            | :white_check_mark: Logged
+            | - Project: <name>
+            | - Per line: date · time logged in words · note
+            | - Week so far: paste weeklyUtilization from the tool (it is already in plain English hours)
+
+        actions:
+            go_to_Project_List_from_time: @utils.transition to @topic.Project_List
+                description: "If the user asks for projects/assignments while in this topic, transition immediately to Project_List."
+
+            list_projects: @actions.ListMyProjects
+                with actingUserId = @variables.currentRecordId
+
+            submit_entries: @actions.SubmitTimeEntries
+                with messageText = ...
+                with actingUserId = @variables.currentRecordId
+                with optionalProject = ...
+                with amountRepresentsHours = True
+
+            SendMessageToSlackChannel: @actions.SendMessageToSlackChannel
+                with channelId = ...
+                with message = ...
+
+            SendSlackDirectMessage: @actions.SendSlackDirectMessage
+                with slackUserId = ...
+                with message = ...
+
+            UpdateSlackCanvas: @actions.UpdateSlackCanvas
+                with canvasId = ...
+                with content = ...
+
+            CreateSlackCanvas: @actions.CreateSlackCanvas
+                with title = ...
+                with content = ...
+
+            ShareSlackCanvas: @actions.ShareSlackCanvas
+                with canvasId = ...
+                with userIds = ...
+                with channelIds = ...
+                with accessLevel = ...
+
+            GetRecordDetails: @actions.GetRecordDetails
+                with recordId = ...
+
+            UpdateRecordFields: @actions.UpdateRecordFields
+                with recordDetailInput = ...
+
+
+    actions:
+        ListMyProjects:
+            description: "Returns the list of projects assigned to the submitting user."
+            label: "List My Projects"
+            require_user_confirmation: False
+            include_in_progress_indicator: False
+            progress_indicator_message: "Loading your projects..."
+            target: "apex://TimeTrackingProjectService"
+            inputs:
+                actingUserId: string
+                    description: "Salesforce User Id of the submitting user."
+                    label: "Acting User Id"
+                    is_required: False
+                    is_user_input: False
+            outputs:
+                projectNames: list[object]
+                    description: "Project names assigned to the user."
+                    label: "Project Names"
+                    filter_from_agent: False
+                    is_displayable: True
+                    complex_data_type_name: "lightning__textType"
+                message: string
+                    description: "JSON: {source, actingUserId, projects[]}. Parse projects array for display names only."
+                    label: "Message"
+                    filter_from_agent: False
+                    is_displayable: True
+
+        SubmitTimeEntries:
+            description: "For employees (Slack): third field is always hours worked. Finance mode: third field is billing currency when amountRepresentsHours is false."
+            label: "Submit Time Entries"
+            require_user_confirmation: False
+            include_in_progress_indicator: False
+            progress_indicator_message: "Submitting your time entries..."
+            target: "apex://TimeTrackingService"
+            inputs:
+                messageText: string
+                    description: "Multi-line Slack text. Each line: date ; what you did ; hours worked (e.g. 2 or 1.5)."
+                    label: "Message Text"
+                    is_required: True
+                    is_user_input: True
+                actingUserId: string
+                    description: "Salesforce User Id of the submitting user."
+                    label: "Acting User Id"
+                    is_required: False
+                    is_user_input: False
+                optionalProject: string
+                    description: "Optional project name or Id to disambiguate assignments."
+                    label: "Project (Optional)"
+                    is_required: False
+                    is_user_input: True
+                amountRepresentsHours: boolean
+                    description: "True = third token is hours (Slack default). False = third token is billing currency amount."
+                    label: "Amount is hours"
+                    is_required: False
+                    is_user_input: False
+            outputs:
+                createdEntries: list[object]
+                    description: "Created entries details."
+                    label: "Created Entries"
+                    filter_from_agent: False
+                    is_displayable: True
+                    complex_data_type_name: "lightning__textType"
+                weeklyUtilization: object
+                    description: "Weekly snapshot {weekKey, totalHours, capHours}."
+                    label: "Weekly Utilization"
+                    filter_from_agent: False
+                    is_displayable: True
+                    complex_data_type_name: "lightning__textType"
+                warnings: list[object]
+                    description: "Non-blocking warnings."
+                    label: "Warnings"
+                    filter_from_agent: False
+                    is_displayable: True
+                    complex_data_type_name: "lightning__textType"
+                errors: list[object]
+                    description: "Per-line errors."
+                    label: "Errors"
+                    filter_from_agent: False
+                    is_displayable: True
+                    complex_data_type_name: "lightning__textType"
+        SendMessageToSlackChannel:
+            description: |
+                Sends a message to a public or private Slack Channel.
+                Messages may be in plaintext or Markdown format.
+                This action is intended for group communication, announcements, or notifications within channels.
+                This action should not be used to send direct messages to individuals.
+                Upon successful completion, provide the user a friendly confirmation with a link to the message (in markdown).
+            inputs:
+                channelId: string
+                    description: "The Slack Channel ID of the Slack Channel to send a message to."
+                    label: "Slack Channel ID"
+                    is_required: True
+                    is_user_input: True
+                message: string
+                    description: "Plain text or mrkdwn message to be sent to a user."
+                    label: "Slack Message"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                messageUrl: string
+                    description: "The Slack message URL for the sent message; opens in Slack."
+                    label: "Slack Message URL"
+                    filter_from_agent: False
+                    is_displayable: False
+                messageTs: string
+                    description: "The timestamp for when the message was sent in Slack."
+                    label: "Slack Message Timestamp"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "slack://slackAgentDynamic__SendMessageToSlackChannel"
+            label: "Send Message to a Slack Channel"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Sending message..."
+            source: "Slack__SendMessageToSlackChannel"
+        SendSlackDirectMessage:
+            description: |
+                Given plain text or markdown text, send a direct message (DM) in Slack with the recipient and sender users in the DM channel.
+                You can add sections, include links, references, and any other information you deem relevant.
+                Provide the message url to the user along with a friendly message.
+                Upon successful completion, provide the user a friendly confirmation with a link to the message (in markdown).
+            inputs:
+                slackUserId: string
+                    description: "Slack user ID for the person who will receive the direct message."
+                    label: "Slack User Id"
+                    is_required: True
+                    is_user_input: True
+                message: string
+                    description: "Plain text or markdown message to be sent to a user."
+                    label: "Slack Message Content"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                channelId: string
+                    description: "The Slack direct message channel ID for the sent message."
+                    label: "Slack Channel Id"
+                    filter_from_agent: False
+                    is_displayable: False
+                messageUrl: string
+                    description: "The Slack direct message URL for the sent message; opens in Slack."
+                    label: "Slack Message URL"
+                    filter_from_agent: False
+                    is_displayable: False
+                messageTs: string
+                    description: "The timestamp for when the direct message was sent in Slack."
+                    label: "Slack Message Timestamp"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://slackAgentSendDirectMessage"
+            label: "Send a Slack Direct Message"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Sending Slack direct message..."
+            source: "Slack__SendSlackDirectMessage"
+        UpdateSlackCanvas:
+            description: |
+                Append markdown content to a Slack canvas document.
+                Always append new content and never duplicate content that was added in earlier prompts.
+                If no canvas ID is provided or it is ambiguous in the session context, confirm which canvas ID the user intends to update.
+                Upon successful completion, provide the user a friendly confirmation with a link to the canvas (in markdown).
+            inputs:
+                canvasId: string
+                    description: "Unique identifier of the existing canvas to be updated (e.g. F017CC8EGRG)."
+                    label: "Slack Canvas ID"
+                    is_required: True
+                    is_user_input: False
+                content: string
+                    description: "Markdown representation of canvas content."
+                    label: "Content"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                canvasId: string
+                    description: "The Slack canvas ID for the updated canvas."
+                    label: "Slack Canvas ID"
+                    filter_from_agent: False
+                    is_displayable: False
+                canvasUrl: string
+                    description: "The Slack canvas URL for the updated canvas."
+                    label: "Slack Canvas URL"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://slackAgentUpdateCanvas"
+            label: "Update a Slack Canvas"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Updating Slack canvas..."
+            source: "Slack__UpdateSlackCanvas"
+        CreateSlackCanvas:
+            description: |
+                Create a Slack canvas document with the provided markdown content.
+                You can add sections, include links, references, and any other information you deem relevant.
+                When asked to create a canvas with prior content, ask the user whether there is a desired outline with sections, formatting, and sequencing preferred before creating the canvas.
+                Upon successful completion, provide the user a friendly confirmation including the canvas link in markdown.
+            inputs:
+                title: string
+                    description: "Concise but descriptive name for the canvas"
+                    label: "Title"
+                    is_required: True
+                    is_user_input: True
+                content: string
+                    description: "Markdown representation of canvas content."
+                    label: "Content"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                canvasId: string
+                    description: "The new Slack canvas ID."
+                    label: "Slack Canvas ID"
+                    filter_from_agent: False
+                    is_displayable: False
+                canvasUrl: string
+                    description: "The new Slack canvas URL."
+                    label: "Slack Canvas URL"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://slackAgentCreateCanvas"
+            label: "Create a Slack Canvas"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Creating Slack canvas..."
+            source: "Slack__CreateSlackCanvas"
+        ShareSlackCanvas:
+            description: |
+                Shares a Slack Canvas with a set of users and/or channels.
+                If neither a list of Slack Users nor Slack Channels to to add to the channel is provided, ask the user for a list of Slack Users and/or Slack Channels to share the Canvas with.
+                If the user does not provide an access level for the shared Canvas, ask the user for it.
+                Upon successful completion, provide the user a friendly confirmation with a link to the canvas (in markdown) and at-mentions for the channels and/or Users the Canvas was shared with.
+            inputs:
+                canvasId: string
+                    description: "Unique identifier of the existing canvas to share (e.g. F017CC8EGRG)."
+                    label: "Slack Canvas ID"
+                    is_required: True
+                    is_user_input: True
+                userIds: string
+                    description: "A comma-separated list of Slack User IDs to share the provided Slack Canvas with."
+                    label: "Slack User IDs"
+                    is_required: False
+                    is_user_input: True
+                channelIds: string
+                    description: "A comma-separated list of Slack Channel IDs to share the provided Slack Canvas with."
+                    label: "Slack Channel IDs"
+                    is_required: False
+                    is_user_input: True
+                accessLevel: string
+                    description: "The access level for the shared Slack Canvas: view or edit."
+                    label: "accessLevel"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                canvasId: string
+                    description: "The Slack canvas ID for the updated canvas."
+                    label: "Slack Canvas ID"
+                    filter_from_agent: False
+                    is_displayable: False
+                canvasUrl: string
+                    description: "The Slack canvas URL for the updated canvas."
+                    label: "Slack Canvas URL"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "slack://slackAgentDynamic__ShareSlackCanvas"
+            label: "Share a Slack Canvas"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Sharing a Slack canvas..."
+            source: "Slack__ShareSlackCanvas"
+        GetRecordDetails:
+            description: "Generates a text blob containing record details, including object fields and values and records from related lists."
+            inputs:
+                recordId: object
+                    description: "The ID of a Salesforce record to get the record details for."
+                    label: "Record ID"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__recordIdType"
+            outputs:
+                snapshot: string
+                    description: "Record details, including object fields and values, records from related lists, and more."
+                    label: "Record Details"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://getDataForGrounding"
+            label: "Get Record Details"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Getting details"
+            source: "EmployeeCopilot__GetRecordDetails"
+
+        UpdateRecordFields:
+            description: "Updates fields on a Salesforce CRM record. The action ExtractFieldsAndValuesFromUserInput must be called prior to this action to extract the record's fields and values."
+            inputs:
+                recordDetailInput: object
+                    description: "Fields and their values for the record to be updated. This input is the exact output of the ExtractFieldsAndValuesFromUserInput action."
+                    label: "Record Detail Input"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__recordInfoType"
+            outputs:
+                recordDetailOutput: object
+                    description: "Fields and their values for the updated record."
+                    label: "Record Detail Output"
+                    complex_data_type_name: "lightning__recordInfoType"
+                    filter_from_agent: False
+                    is_displayable: True
+            target: "standardInvocableAction://einsteinCopilotUpdateRecord"
+            label: "Update Record"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Making updates"
+            source: "EmployeeCopilot__UpdateRecordFields"

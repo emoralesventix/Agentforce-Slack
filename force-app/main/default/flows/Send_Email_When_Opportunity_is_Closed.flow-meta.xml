@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Enviar_Email</name>
+        <label>Enviar Email</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>emailSimple</actionName>
+        <actionType>emailSimple</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>recipientAddresses</name>
+            <value>
+                <collectionElements>
+                    <stringValue>emorales@ventixsolutions.com</stringValue>
+                </collectionElements>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>senderType</name>
+            <value>
+                <inputConfiguratorMode>Custom</inputConfiguratorMode>
+                <stringValue>CurrentUser</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>composeEmailContent</name>
+            <value>
+                <stringValue>True</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailSubject</name>
+            <value>
+                <stringValue>Oportunidad Cerrada :)</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailBody</name>
+            <value>
+                <inputConfiguratorMode>Custom</inputConfiguratorMode>
+                <stringValue>&lt;p&gt;TEST&lt;/p&gt;</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>sendRichBody</name>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>relatedRecordId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+                <inputConfiguratorMode>Resource</inputConfiguratorMode>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>logEmailOnSend</name>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </inputParameters>
+        <nameSegment>emailSimple</nameSegment>
+        <offset>0</offset>
+        <versionString>2.0.1</versionString>
+    </actionCalls>
+    <actionCalls>
+        <name>Send_Slack_message_to_Vantegrate</name>
+        <label>Send Slack message to Vantegrate</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>Vantegrate_Agent</actionName>
+        <actionType>generateAiAgentResponse</actionType>
+        <dataTypeMappings>
+            <apexClass>AgentInvAction__AIAgentCompositeDefault</apexClass>
+            <typeName>U__agentResponseApex</typeName>
+        </dataTypeMappings>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>sessionId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>userMessage</name>
+            <value>
+                <stringValue>The Opportunity {!$Record.Name} is now closed. You must generate a concise summary of this opportunity and send it directly to the Slack channel #service-swarm. Channel Id: C0AKPBYJM29
+
+Use the Topic: Closed oportunity notifications Slack Channel please
+Use this ID to fetch all the details from the Opportunity:  {!$Record.Id} and answer questions from the user.
+
+
+ Do not send Direct Messages. Do not ask for confirmation or permission. Execute the action immediately.
+
+IF you can try to send this to the channel:  #service-swarm  would be great! In that same message mention the Slack User Id: with &lt;@{!Slack_User_Id.slackUserId}&gt; and put that at the bottom of the message as
+
+cc: &lt;@{!Slack_User_Id.slackUserId}&gt;
+
+Do not ask for confirmation or permission. Execute the action immediately and send the Message
+
+NEVER ASK for USER Confirmation and DON&apos;T Create the  Canvas on this action, please</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>Vantegrate_Agent</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <versionString>1.1.0</versionString>
+    </actionCalls>
+    <actionCalls>
+        <name>Slack_User_Id</name>
+        <label>Slack User Id</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>slackAgentGetUser</actionName>
+        <actionType>slackAgentGetUser</actionType>
+        <connector>
+            <targetReference>Send_Slack_message_to_Vantegrate</targetReference>
+        </connector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>salesforceUserId</name>
+            <value>
+                <elementReference>$Record.OwnerId</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>slackAgentGetUser</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <apiVersion>65.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <constants>
+        <name>SlackId</name>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>A0ALGP3B0BY</stringValue>
+        </value>
+    </constants>
+    <constants>
+        <name>workspace</name>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>TH-Sd0AKLCHFY4T</stringValue>
+        </value>
+    </constants>
+    <environments>Default</environments>
+    <interviewLabel>Send Email When Opportunity is Closed {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Send Email When Opportunity is Closed</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Enviar_Email</targetReference>
+        </connector>
+        <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>StageName</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Closed Won</stringValue>
+            </value>
+        </filters>
+        <object>Opportunity</object>
+        <recordTriggerType>Update</recordTriggerType>
+        <scheduledPaths>
+            <connector>
+                <targetReference>Slack_User_Id</targetReference>
+            </connector>
+            <pathType>AsyncAfterCommit</pathType>
+        </scheduledPaths>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

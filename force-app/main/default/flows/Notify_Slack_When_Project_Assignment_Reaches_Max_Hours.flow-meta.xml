@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Send_Project_Completion_Alert_with_Management_Agent</name>
+        <label>Send Project Completion Alert with Management Agent</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>Agentforce_Management_Assistant</actionName>
+        <actionType>generateAiAgentResponse</actionType>
+        <dataTypeMappings>
+            <apexClass>AgentInvAction__AIAgentCompositeDefault</apexClass>
+            <typeName>U__agentResponseApex</typeName>
+        </dataTypeMappings>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>sessionId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>userMessage</name>
+            <value>
+                <stringValue>AUTOMATION_CLOSURE_EVENT
+TargetChannelId: D0ALCP2TMLZ
+ObjectType: Project_Assignment__c
+ProjectAssignmentId: {!$Record.Id}
+ProjectName: {!$Record.Project__r.Name}
+OpportunityId: {!$Record.Opportunity__c}
+AssignedUserId: {!$Record.Assigned_User__c}
+LoggedHours: {!$Record.Logged_Hours__c}
+MaxHours: {!$Record.Max_Hours__c}
+StatusHint: Logged hours reached or exceeded max hours.
+
+Send one concise project-closure style operational notification to Slack channel C0ANYUUACQ0.
+Include next-step recommendation for Billing and Management. Use Slackk vignete or bullet list if needed. 
+Do not ask for confirmation.
+Use Topic: Project_Closure_Notifications</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>Agentforce_Management_Assistant</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <versionString>1.1.0</versionString>
+    </actionCalls>
+    <apiVersion>66.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <name>Evaluate_Max_Hours_Threshold</name>
+        <label>Evaluate Max Hours Threshold</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Reached_Max_Hours</name>
+            <conditionLogic>1 AND 2</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Max_Weekly_Hours__c</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <numberValue>0.0</numberValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Logged_Hours__c</leftValueReference>
+                <operator>GreaterThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.Max_Hours__c</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Send_Project_Completion_Alert_with_Management_Agent</targetReference>
+            </connector>
+            <label>Reached Max Hours</label>
+        </rules>
+    </decisions>
+    <environments>Default</environments>
+    <interviewLabel>Notify Slack When Project Assignment Reaches Max Hours {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Notify Slack When Project Assignment Reaches Max Hours</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Logged_Hours__c</field>
+            <operator>IsChanged</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <object>Project_Assignment__c</object>
+        <recordTriggerType>Update</recordTriggerType>
+        <scheduledPaths>
+            <connector>
+                <targetReference>Evaluate_Max_Hours_Threshold</targetReference>
+            </connector>
+            <pathType>AsyncAfterCommit</pathType>
+        </scheduledPaths>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

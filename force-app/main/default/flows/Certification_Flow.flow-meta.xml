@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Certification_Services</name>
+        <label>Certification Services</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>CertificationServices.getSalesforceCertificaciones</actionName>
+        <actionType>externalService</actionType>
+        <flowTransactionModel>Automatic</flowTransactionModel>
+        <nameSegment>CertificationServices.getSalesforceCertificaciones</nameSegment>
+        <offset>0</offset>
+        <outputParameters>
+            <assignToReference>var_respuesta</assignToReference>
+            <name>200</name>
+        </outputParameters>
+    </actionCalls>
+    <apiVersion>65.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <environments>Default</environments>
+    <interviewLabel>Certification Flow {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Certification Flow</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Certification_Services</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>var_respuesta</name>
+        <apexClass>ExternalService__CertificationServices_CertificacionesResponse</apexClass>
+        <dataType>Apex</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+</Flow>

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Send_Over_Budget_Alert_with_Management_Agent</name>
+        <label>Send Over Budget Alert with Management Agent</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>Agentforce_Management_Assistant</actionName>
+        <actionType>generateAiAgentResponse</actionType>
+        <dataTypeMappings>
+            <apexClass>AgentInvAction__AIAgentCompositeDefault</apexClass>
+            <typeName>U__agentResponseApex</typeName>
+        </dataTypeMappings>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>sessionId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>userMessage</name>
+            <value>
+                <stringValue>AUTOMATION_BUDGET_ALERT
+TargetChannelId: C0ANYUUACQ0
+ProjectAssignmentId: {!$Record.Id}
+ProjectName: {!$Record.Project__r.Name}
+AssignedUserId: {!$Record.Assigned_User__c}
+OpportunityId: {!$Record.Opportunity__c}
+TotalBilledAmount: {!$Record.Total_Billed_Amount__c}
+WeeklyBudgetAmount: {!$Record.Weekly_Budget_Amount__c}
+MonthlyBudgetAmount: {!$Record.Monthly_Budget_Amount__c}
+LoggedHours: {!$Record.Logged_Hours__c}
+ExpectedWeeklyHours: {!$Record.Max_Weekly_Hours__c}
+ExpectedMonthlyHours: {!$Record.Max_Monthly_Hours__c}
+
+Post exactly one concise management alert in Slack channel C0ANYUUACQ0 with severity and 2-3 recommended actions.
+Do not ask for confirmation.
+Use Topic: Budget_Alerting</stringValue>
+            </value>
+        </inputParameters>
+        <nameSegment>Agentforce_Management_Assistant</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <versionString>1.1.0</versionString>
+    </actionCalls>
+    <apiVersion>66.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <name>Evaluate_Budget_And_Expectation_Thresholds</name>
+        <label>Evaluate Budget And Expectation Thresholds</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Weekly_Budget_Amount_Exceeded</name>
+            <conditionLogic>1 AND 2</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Weekly_Budget_Amount__c</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <numberValue>0.0</numberValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Total_Billed_Amount__c</leftValueReference>
+                <operator>GreaterThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.Weekly_Budget_Amount__c</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Send_Over_Budget_Alert_with_Management_Agent</targetReference>
+            </connector>
+            <label>Weekly Budget Amount Exceeded</label>
+        </rules>
+        <rules>
+            <name>Monthly_Budget_Amount_Exceeded</name>
+            <conditionLogic>1 AND 2</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Monthly_Budget_Amount__c</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <numberValue>0.0</numberValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Total_Billed_Amount__c</leftValueReference>
+                <operator>GreaterThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.Monthly_Budget_Amount__c</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Send_Over_Budget_Alert_with_Management_Agent</targetReference>
+            </connector>
+            <label>Monthly Budget Amount Exceeded</label>
+        </rules>
+        <rules>
+            <name>Weekly_Expected_Hours_Exceeded</name>
+            <conditionLogic>1 AND 2</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Max_Weekly_Hours__c</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <numberValue>0.0</numberValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Logged_Hours__c</leftValueReference>
+                <operator>GreaterThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.Max_Weekly_Hours__c</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Send_Over_Budget_Alert_with_Management_Agent</targetReference>
+            </connector>
+            <label>Weekly Expected Hours Exceeded</label>
+        </rules>
+        <rules>
+            <name>Monthly_Expected_Hours_Exceeded</name>
+            <conditionLogic>1 AND 2</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Max_Monthly_Hours__c</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <numberValue>0.0</numberValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Logged_Hours__c</leftValueReference>
+                <operator>GreaterThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.Max_Monthly_Hours__c</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Send_Over_Budget_Alert_with_Management_Agent</targetReference>
+            </connector>
+            <label>Monthly Expected Hours Exceeded</label>
+        </rules>
+    </decisions>
+    <environments>Default</environments>
+    <interviewLabel>Notify Slack When Project Assignment Is Over Budget {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Notify Slack When Project Assignment Is Over Budget</label>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+        <filterLogic>1</filterLogic>
+        <filters>
+            <field>Logged_Hours__c</field>
+            <operator>GreaterThan</operator>
+            <value>
+                <numberValue>0.0</numberValue>
+            </value>
+        </filters>
+        <object>Project_Assignment__c</object>
+        <recordTriggerType>Update</recordTriggerType>
+        <scheduledPaths>
+            <connector>
+                <targetReference>Evaluate_Budget_And_Expectation_Thresholds</targetReference>
+            </connector>
+            <pathType>AsyncAfterCommit</pathType>
+        </scheduledPaths>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

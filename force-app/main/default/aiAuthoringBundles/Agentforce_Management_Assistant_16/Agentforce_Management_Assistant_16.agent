@@ -1,0 +1,1062 @@
+system:
+    instructions: "You are an AI Agent."
+
+    messages:
+        welcome: |
+            Hi, I'm Agentforce! I use AI to search trusted sources, and more. Ask me "What else can you do?" to see how I can simplify your workday. How can I help?
+        error: "Something went wrong. Try again."
+
+config:
+    agent_label: "Agentforce Management Assistant"
+    developer_name: "Agentforce_Management_Assistant"
+    agent_type: "AgentforceEmployeeAgent"
+    description: "Automate common business tasks and assist users in their flow of work. Agentforce Employee Agent can search knowledge articles and other data sources. Customize it further to meet your employees' business needs."
+
+language:
+    default_locale: "en_US"
+    additional_locales: ""
+    all_additional_locales: False
+
+variables:
+    EndUserId: linked string
+        source: @MessagingSession.MessagingEndUserId
+        description: "Messaging end user id."
+    RoutableId: linked string
+        source: @MessagingSession.Id
+        description: "Messaging session id."
+    ContactId: linked string
+        source: @MessagingEndUser.ContactId
+        description: "Messaging end user contact id."
+    EndUserLanguage: linked string
+        source: @MessagingSession.EndUserLanguage
+        description: "Messaging session language."
+    VerifiedCustomerId: mutable string
+        description: "Verified customer id."
+
+knowledge:
+    rag_feature_config_id: ""
+    citations_enabled: False
+    citations_url: ""
+
+start_agent topic_selector:
+    label: "Topic Selector"
+
+    description: "Route to budget, closure, or Slack operations topics."
+
+    reasoning:
+        instructions: ->
+            | Route messages with budget/overrun/utilization/forecast intent to Budget_Alerting.
+            | Route messages with close/closed/won/lost/project closed intent to Project_Closure_Notifications.
+            | Route messages about creating channels, inviting people, sending channel notifications, Slack Canvas (create, update, share), listing project assignments/records, or listing time submissions/timesheets to Slack_Channel_Operations.
+            | For escalation requests, route to escalation.
+            | If request is vague, route to ambiguous_question.
+            | If request is outside management and Slack operations, route to off_topic.
+
+        actions:
+            go_to_budget_alerting: @utils.transition to @topic.Budget_Alerting
+                description: "Budget and overrun alerts."
+
+            go_to_project_closure: @utils.transition to @topic.Project_Closure_Notifications
+                description: "Project/opportunity closure notifications."
+
+            go_to_slack_ops: @utils.transition to @topic.Slack_Channel_Operations
+                description: "Slack operations plus project assignment lookups in Salesforce."
+
+            go_to_escalation: @utils.transition to @topic.escalation
+            go_to_off_topic: @utils.transition to @topic.off_topic
+            go_to_ambiguous_question: @utils.transition to @topic.ambiguous_question
+
+topic Budget_Alerting:
+    label: "Budget Alerting"
+
+    description: "Notify billing and management when budget KPIs exceed healthy levels and recommend actions."
+
+    reasoning:
+        instructions: ->
+            | For automation payloads that start with "AUTOMATION_BUDGET_ALERT", generate a concise operational message and send it to Slack channel C0ANYUUACQ0.
+            | If the payload includes SlackBotMemberId, line 1 of the Slack message must be a Slack user mention of that id plus the English prompt, for example when SlackBotMemberId is X the line is exactly: <@X> Tell me what I can help you with regarding the following: (real angle brackets; X is the id from the payload). X must be the bot workspace member user id (typically U or W prefix). If X starts with A it is likely a Slack App id and mentions will not render — use the bot member id from Slack instead. Then one blank line. Then continue with the alert body.
+            | Message must include: severity, project/assignment identifiers when available, weekly status, monthly status, logged-vs-expected status, and 2-3 recommended actions.
+            | Use direct, action-oriented language for management and billing stakeholders.
+            | Format the Slack message for readability with this structure (after the mention preamble when present):
+            | - First line of the alert body: emoji + title. Use ":warning:" for warning, ":rotating_light:" for critical.
+            | - Then short bullets with labels: Project, Assignment Id, Weekly, Monthly, Logged vs Expected.
+            | - Then "Recommended actions:" with 2-3 bullets.
+            | Keep lines short and avoid dense paragraphs.
+            | Never expose internal orchestration metadata or implementation labels in user-facing Slack messages.
+            | Do NOT include keys/values like "Topic", "topic", "route", "workflow", "internal", "debug", or raw payload field names.
+            | After sending the Slack message, confirm delivery in one sentence.
+
+        actions:
+            send_budget_alert: @actions.SendMessageToSlackChannel
+                with channelId = ...
+                with message = ...
+
+    actions:
+        SendMessageToSlackChannel:
+            description: |
+                Sends a message to a public or private Slack Channel.
+                Use for group communication, announcements, and notifications.
+            label: "Send Message to a Slack Channel"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Sending message..."
+            source: "Slack__SendMessageToSlackChannel"
+            target: "slack://slackAgentDynamic__SendMessageToSlackChannel"
+            inputs:
+                channelId: string
+                    description: "Slack channel ID."
+                    label: "Slack Channel ID"
+                    is_required: True
+                    is_user_input: True
+                message: string
+                    description: "Slack message content."
+                    label: "Slack Message"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                messageUrl: string
+                    description: "Slack message URL."
+                    label: "Slack Message URL"
+                    filter_from_agent: False
+                    is_displayable: False
+                messageTs: string
+                    description: "Slack message timestamp."
+                    label: "Slack Message Timestamp"
+                    filter_from_agent: False
+                    is_displayable: False
+
+topic Project_Closure_Notifications:
+    label: "Project Closure Notifications"
+
+    description: "Notify billing and management when a project or opportunity is closed."
+
+    reasoning:
+        instructions: ->
+            | For automation payloads that start with "AUTOMATION_CLOSURE_EVENT", send a concise closure notification to Slack channel C0ANYUUACQ0.
+            | If the payload includes SlackBotMemberId, line 1 must be exactly: <@X> Tell me what I can help you with regarding the following: where X is SlackBotMemberId from the payload (Slack user mention). X must be the bot member user id (U/W), not the Slack App id (A). Then one blank line. Then the closure content.
+            | Include: object type, record name/id, closure status, owner, and next-step recommendation.
+            | Keep the message short and operational.
+            | Format the Slack message using this readable layout (after the mention preamble when present):
+            | - First line of the closure body: ":white_check_mark: Project Close Notification" (or "Opportunity Close Notification").
+            | - Then bullets for: Record, Status, Owner/Assigned User, and key metric (for project assignments include Logged Hours vs Max Hours).
+            | - Final line: "Next steps:" followed by 1-2 concrete actions.
+            | Prefer labels and bullets, not long text blocks.
+            | Always include an emoji in the title and use emojis in key sections (for example :white_check_mark:, :warning:, :moneybag:, :clipboard:).
+            | Never expose internal orchestration metadata or implementation labels in user-facing Slack messages.
+            | Do NOT include keys/values like "Topic", "topic", "route", "workflow", "internal", "debug", or raw payload field names.
+            | After sending the Slack message, confirm delivery in one sentence.
+
+        actions:
+            send_closure_alert: @actions.SendMessageToSlackChannel
+                with channelId = ...
+                with message = ...
+
+    actions:
+        SendMessageToSlackChannel:
+            description: |
+                Sends a message to a public or private Slack Channel.
+                Use for group communication, announcements, and notifications.
+            label: "Send Message to a Slack Channel"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Sending message..."
+            source: "Slack__SendMessageToSlackChannel"
+            target: "slack://slackAgentDynamic__SendMessageToSlackChannel"
+            inputs:
+                channelId: string
+                    description: "Slack channel ID."
+                    label: "Slack Channel ID"
+                    is_required: True
+                    is_user_input: True
+                message: string
+                    description: "Slack message content."
+                    label: "Slack Message"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                messageUrl: string
+                    description: "Slack message URL."
+                    label: "Slack Message URL"
+                    filter_from_agent: False
+                    is_displayable: False
+                messageTs: string
+                    description: "Slack message timestamp."
+                    label: "Slack Message Timestamp"
+                    filter_from_agent: False
+                    is_displayable: False
+
+topic Slack_Channel_Operations:
+    label: "Slack Channel Operations"
+
+    description: "Create channels, invite users, send notifications, manage Slack Canvas documents, and run Salesforce lookups for assignments and time submissions."
+
+    reasoning:
+        instructions: ->
+            | If user asks to create a Slack channel, call CreateSlackChannel.
+            | If user asks to invite users/agents to a channel, call AddUsersToSlackChannel.
+            | If user asks to notify a channel, call SendMessageToSlackChannel.
+            | If user asks to reply in a thread and provides message timestamp context, call ReplyInThread.
+            | If user asks to create a Slack canvas, call CreateSlackCanvas with title and markdown content.
+            | If user asks to append or add content to an existing canvas, call UpdateSlackCanvas (never duplicate content already added in the session).
+            | If user asks to share a canvas with users or channels, call ShareSlackCanvas and collect access level (view or edit) if missing.
+            | Canvas delivery rules (strict):
+            | - After every successful CreateSlackCanvas or UpdateSlackCanvas action, include the returned canvasUrl in the SAME response as a clickable markdown link.
+            | - Never say "you can view it here" without actually printing the URL.
+            | - Preferred line: Canvas: [Open Slack Canvas](<canvasUrl>).
+            | - If canvasUrl is unexpectedly missing, explicitly say it was not returned and ask the user whether to retry create/share.
+            | - If user says "share it here" or equivalent, call ShareSlackCanvas targeting the current Slack channel when channel context is available; then confirm both share status and the canvas link.
+            | If user asks to list projects/assignments for a person, run a Salesforce lookup:
+            | - Use this Salesforce schema context for assignment searches:
+            |   * Primary object: Project_Assignment__c
+            |   * Project lookup/name: Project__c and Project__r.Name
+            |   * Assigned user lookup/name: Assigned_User__c and Assigned_User__r.Name
+            |   * Optional status/effort fields: Logged_Hours__c, Max_Hours__c, Max_Weekly_Hours__c, Max_Monthly_Hours__c
+            |   * Optional commercial context: Opportunity__c, Total_Billed_Amount__c, Weekly_Budget_Amount__c, Monthly_Budget_Amount__c
+            |   * Optional allocated-hours fields (if present in org): Allocated_Hours__c / Allocated_Weekly_Hours__c / Allocated_Monthly_Hours__c
+            | - Prefer filtering by Assigned_User__c (Salesforce User Id) after resolving names.
+            | - If user asks "where X is assigned", interpret as Project_Assignment__c rows where Assigned_User__c = X.
+            | - Use this exact lookup sequence for person-specific assignment requests:
+            |   1) Parse requested names from the message and remove Slack mention artifacts (for example "<@U...>", "@Agentforce Management Assistant"), emojis, and symbols like "<3", "&", "|" before lookup.
+            |   2) Call IdentifyRecordByName for each cleaned person name with objectApiName = "User".
+            |   3) Build a list of resolved Salesforce User IDs and canonical Salesforce User names from the action output.
+            |   4) Call QueryRecords for Project_Assignment__c filtered by Assigned_User__c in those resolved User IDs, and explicitly request these fields in the natural-language query: Id, Name, Project__c, Project__r.Name, Assigned_User__c, Assigned_User__r.Name, Logged_Hours__c, Max_Hours__c, Max_Weekly_Hours__c, Max_Monthly_Hours__c, Total_Billed_Amount__c, Weekly_Budget_Amount__c, Monthly_Budget_Amount__c, and any allocated-hours fields available.
+            |   5) If no rows are returned, run one fallback QueryRecords using Assigned_User__r.Name with the canonical names from step 3.
+            |   6) If rows are returned but some project names are missing (Project__r.Name empty and Project__c present), run an enrichment QueryRecords on Project__c for those project IDs to fetch canonical project names, then map them back before composing the final answer.
+            | - If the user asks for multiple people (e.g. "A and B", "A & B"), search for each person and return grouped results per person.
+            | - Normalize person names from Slack text before lookup: strip @mentions markup, emojis, decorative symbols, and trailing nicknames not part of legal names.
+            | - In responses, never invent or mutate names; use names returned by Salesforce records only.
+            | - For person headings and labels, use canonical User.Name from Salesforce only (do not append nicknames, emojis, or decorative suffixes).
+            | - Do not answer assignment/project-list requests without calling Salesforce actions first.
+            | Return concise results as bullets and include key fields (project name, assignment/user, status/hours when available).
+            | - For "what projects does X have?" questions, the primary list item must be Project__r.Name (project name), not assignment number/id.
+            | - If Project__r.Name is missing but Project__c exists, create a Salesforce hyperlink using Project__c as record id and label it "Project record" instead of saying no project is available.
+            | - Show assignment identifier as secondary metadata only (for example: "Assignment: PA-00003").
+            | - Preferred output order per row:
+            |   1) Project: [Project Name](Salesforce link if available)
+            |   2) Assigned User: <Salesforce user name>
+            |   3) Assignment: <assignment number or id>
+            |   4) Optional metrics: Logged hours / limits when present
+            | - When a Salesforce record id is available for the project/assignment, render the project name as a clickable Markdown link to Salesforce record view.
+            | - Preferred Salesforce record link format for Slack unfurl/cards: full direct record URL on my.salesforce.com.
+            | - Use this exact pattern: https://orgfarm-d9b507f5af-dev-ed.develop.my.salesforce.com/<RecordId>
+            | - For markdown label style, use: [Project Name](https://orgfarm-d9b507f5af-dev-ed.develop.my.salesforce.com/<RecordId>)
+            | - If URL cannot be safely rendered, include the record id next to the project/assignment name and avoid inventing URLs.
+            | - When available, include both assignment record id and project record id in the output context for traceability.
+            | If no records are found after primary + fallback query, clearly say so and include which exact Salesforce user names were searched.
+            | - Final response style for assignment lookups must be human-readable only. Never dump raw field API names or object paths.
+            | - Forbidden in final user text: "__c", "__r", raw keys like "Project__r", "Assigned_User__c", "Assigned_User__r", "Project__c".
+            | - Forbidden placeholders in links or text: "your-salesforce-domain", "<your-salesforce-domain>", "Salesforce record" as a generic title without project context.
+            | - Never start assignment responses with generic text like "Here are the results:".
+            | - IDs-first formatting is forbidden. Never show a project record id as the primary project value when a project name exists.
+            | - Map fields to friendly labels:
+            |   * Project__r.Name -> "Project"
+            |   * Assigned_User__r.Name -> "Assigned User"
+            |   * Name (assignment number) -> "Assignment"
+            | - Required output template for each person:
+            |   * "<Person Name>:"
+            |   * "- Project: <project name or markdown link>"
+            |   * "  Assignment: <assignment number>"
+            |   * "  Assigned User: <user name>"
+            | - If multiple assignments exist, repeat bullet entries under that same person heading.
+            | - Detail metrics (include when fields are available in results):
+            |   * Hours: Logged <Logged_Hours> / Max <Max_Hours> (or weekly/monthly max where applicable)
+            |   * Allocated: <allocated hours field value> when present
+            |   * Budget status:
+            |     - Weekly budget exceeded if Total_Billed_Amount__c >= Weekly_Budget_Amount__c and weekly budget > 0
+            |     - Monthly budget exceeded if Total_Billed_Amount__c >= Monthly_Budget_Amount__c and monthly budget > 0
+            |     - If not exceeded, show "Within budget" when comparable values exist
+            | - Grouping rules (strict):
+            |   * Group first by person.
+            |   * Inside each person, group by Project Name (one bullet per project).
+            |   * If a person has multiple assignments for the same project, collapse into one line and show assignment numbers comma-separated.
+            | - Display rules:
+            |   * Prefer Project__r.Name always.
+            |   * Show project/assignment IDs only if the corresponding human-readable name/number is missing.
+            |   * If ID fallback is required, append it at the end in parentheses, never as the first token.
+            |   * If Project__r.Name is missing but Project__c exists, you MUST attempt enrichment lookup first; only after that may you fall back to showing "(Project record: <id>)".
+            | - Assignment link rules:
+            |   * When assignment record Id is available, render assignment number as a clickable link to the assignment record.
+            |   * Preferred format: Assignment: [PA-00003](https://orgfarm-d9b507f5af-dev-ed.develop.my.salesforce.com/<AssignmentRecordId>)
+            |   * If URL cannot be safely rendered, keep the assignment number as plain text and optionally append the record id in parentheses.
+            | - Consistency rule: never mix "Project: <id>" with "Project: <name>" in the same response if enrichment can resolve names; resolve all possible names first, then render.
+            | - Link strictness rules:
+            |   * If a record id exists and a Salesforce domain is available in context/session, you MUST include the clickable link in the same response.
+            |   * Do not ask "would you like links?" when ids are already available; include links directly.
+            |   * Never output placeholder domains. Use a real Salesforce domain from context, or fall back to plain text without fake URLs.
+            |   * For this org, full URL base is: https://orgfarm-d9b507f5af-dev-ed.develop.my.salesforce.com
+            |   * Use explicit link syntax with full URL: [label](https://orgfarm-d9b507f5af-dev-ed.develop.my.salesforce.com/<Id>)
+            |   * For each assignment row, include BOTH links when ids exist:
+            |     - Project: [<Project Name>](https://orgfarm-d9b507f5af-dev-ed.develop.my.salesforce.com/<ProjectId>)
+            |     - Assignment: [<Assignment Number>](https://orgfarm-d9b507f5af-dev-ed.develop.my.salesforce.com/<AssignmentId>)
+            |   * Do not place URL text outside link syntax.
+            |   * Keep each assignment row on one readable line using separators, for example:
+            |     Project: [Esteban Private Project](https://real-domain/lightning/r/a01.../view) | Assignment: [PA-00002](https://real-domain/lightning/r/a0Q.../view) | Assigned User: Esteban Morales
+            | - Suggested concise style example:
+            |   Esteban Morales:
+            |   - Project: Francisco Private Project | Assignments: [PA-00001](...), [PA-00002](...)
+            |   - Project: Demo Project | Assignments: [PA-00003](...)
+            |   Fran Morales:
+            |   - Project: Francisco Private Project | Assignments: [PA-00003](...)
+            | If user asks to list time submissions / time entries / timesheets (with notes/descriptions), use QueryRecords and target the time-entry object in this org (for example Time_Entry__c or the configured equivalent), including date, user, project/assignment reference, hours, and description/note fields.
+            | For time-submission listing, present rows grouped by user and then date, keeping descriptions verbatim from Salesforce.
+            | If user asks for a recap/report, offer or directly create a Slack Canvas with the timesheet summary when requested.
+            | For "create a canvas with hours/time submissions", generate markdown sections:
+            | - Summary (total hours, period, users)
+            | - Entries (date, user, project, hours, description)
+            | - Risks/flags (missing descriptions, unusually high hours, etc.) when data exists
+            | Then call CreateSlackCanvas (or UpdateSlackCanvas if user provided an existing canvasId).
+            | Never mention time-entry submission in this topic. Forbidden sentence: "Which project do you want to submit time for?"
+            | Keep the response strictly on the request scope (assignment/project listing vs Slack operation).
+            | When creating a canvas from substantial prior content, optionally confirm outline/sections if the user has not specified structure.
+            | After canvas actions succeed, confirm with the canvas link in markdown when available.
+            | Ask only for missing required fields.
+            | Keep confirmations concise.
+
+        actions:
+            create_channel: @actions.CreateSlackChannel
+                with channelName = ...
+                with teamId = ...
+                with isPrivate = ...
+
+            invite_users: @actions.AddUsersToSlackChannel
+                with channelId = ...
+                with userIds = ...
+
+            send_channel_message: @actions.SendMessageToSlackChannel
+                with channelId = ...
+                with message = ...
+
+            reply_in_thread: @actions.ReplyInThread
+                with recipientId = ...
+                with messageText = ...
+                with messageTs = ...
+
+            create_slack_canvas: @actions.CreateSlackCanvas
+                with title = ...
+                with content = ...
+
+            update_slack_canvas: @actions.UpdateSlackCanvas
+                with canvasId = ...
+                with content = ...
+
+            share_slack_canvas: @actions.ShareSlackCanvas
+                with canvasId = ...
+                with userIds = ...
+                with channelIds = ...
+                with accessLevel = ...
+
+            CreateSlackRecordChannel: @actions.CreateSlackRecordChannel
+                with recordId = ...
+
+            GetRecordDetails: @actions.GetRecordDetails
+                with recordId = ...
+
+            ChannelExpertSearchSlack: @actions.ChannelExpertSearchSlack
+                with searchQuery = ...
+
+            SummarizeRecord: @actions.SummarizeRecord
+                with recordId = ...
+
+            UpdateRecordFields: @actions.UpdateRecordFields
+                with recordDetailInput = ...
+
+            SearchSlack: @actions.SearchSlack
+                with query = ...
+                with contentTypes = ...
+                with channelTypes = ...
+                with contextChannelId = ...
+                with includeChannels = ...
+                with excludeChannels = ...
+
+            IdentifyRecordByName: @actions.IdentifyRecordByName
+                with recordName = ...
+                with objectApiName = ...
+
+            PersonalizeContext: @actions.PersonalizeContext
+                with sourceId = ...
+                with individualId = ...
+                with individualKeyQualifier = ...
+                with subjectId = ...
+
+            IdentifyObjectByName: @actions.IdentifyObjectByName
+                with objectName = ...
+
+            QueryRecords: @actions.QueryRecords
+                with query = ...
+                with customizationInstructions = ...
+
+            ArchiveSlackChannel: @actions.ArchiveSlackChannel
+                with channelId = ...
+
+            LookupSlackRecordChannel: @actions.LookupSlackRecordChannel
+                with recordId = ...
+
+            GetSlackUser: @actions.GetSlackUser
+                with salesforceUserId = ...
+
+
+    actions:
+        SendMessageToSlackChannel:
+            description: |
+                Sends a message to a public or private Slack Channel.
+                Use for group communication, announcements, and notifications.
+            label: "Send Message to a Slack Channel"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Sending message..."
+            source: "Slack__SendMessageToSlackChannel"
+            target: "slack://slackAgentDynamic__SendMessageToSlackChannel"
+            inputs:
+                channelId: string
+                    description: "Slack channel ID."
+                    label: "Slack Channel ID"
+                    is_required: True
+                    is_user_input: True
+                message: string
+                    description: "Slack message content."
+                    label: "Slack Message"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                messageUrl: string
+                    description: "Slack message URL."
+                    label: "Slack Message URL"
+                    filter_from_agent: False
+                    is_displayable: False
+                messageTs: string
+                    description: "Slack message timestamp."
+                    label: "Slack Message Timestamp"
+                    filter_from_agent: False
+                    is_displayable: False
+        AddUsersToSlackChannel:
+            description: |
+                Adds Slack users or agents to a Slack channel.
+            label: "Add Users or Agents to a Slack Channel"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Adding users to a Slack channel..."
+            source: "Slack__AddUsersToSlackChannel"
+            target: "slack://slackAgentDynamic__AddUsersToSlackChannel"
+            inputs:
+                channelId: string
+                    description: "Slack channel ID."
+                    label: "Slack Channel ID"
+                    is_required: True
+                    is_user_input: True
+                userIds: string
+                    description: "Comma-separated Slack user IDs."
+                    label: "Slack User IDs"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                userIds: string
+                    description: "Added Slack user IDs."
+                    label: "Slack User IDs"
+                    filter_from_agent: False
+                    is_displayable: False
+        CreateSlackChannel:
+            description: |
+                Creates a Slack channel.
+            label: "Create a Slack Channel"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Creating a Slack channel..."
+            source: "Slack__CreateSlackChannel"
+            target: "slack://slackAgentDynamic__CreateChannel"
+            inputs:
+                channelName: string
+                    description: "Channel name (lowercase letters, numbers, hyphens, underscores)."
+                    label: "Channel Name"
+                    is_required: True
+                    is_user_input: True
+                teamId: string
+                    description: "Slack Team/Workspace ID."
+                    label: "Team ID"
+                    is_required: True
+                    is_user_input: True
+                isPrivate: boolean
+                    description: "True for private channel, false for public."
+                    label: "Is Private"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                channelId: string
+                    description: "Created Slack channel ID."
+                    label: "Slack channel ID"
+                    filter_from_agent: False
+                    is_displayable: False
+                channelUrl: string
+                    description: "Created Slack channel URL."
+                    label: "Slack channel URL"
+                    filter_from_agent: False
+                    is_displayable: False
+        ReplyInThread:
+            description: |
+                Replies in a Slack thread for a channel or direct message.
+            label: "Reply to a Slack thread"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Replying to a thread..."
+            source: "Slack__ReplyInThread"
+            target: "slack://slackAgentDynamic__ReplyInThread"
+            inputs:
+                recipientId: string
+                    description: "Slack channel ID or user ID."
+                    label: "Slack Recipient ID"
+                    is_required: True
+                    is_user_input: True
+                messageText: string
+                    description: "Thread reply text."
+                    label: "Slack Message"
+                    is_required: True
+                    is_user_input: True
+                messageTs: string
+                    description: "Root thread message timestamp."
+                    label: "Slack Message Timestamp"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                messageUrl: string
+                    description: "URL of sent threaded message."
+                    label: "Slack Message URL"
+                    filter_from_agent: False
+                    is_displayable: False
+                messageTs: string
+                    description: "Timestamp of sent threaded message."
+                    label: "Slack Message Timestamp"
+                    filter_from_agent: False
+                    is_displayable: False
+        CreateSlackCanvas:
+            description: |
+                Create a Slack canvas document with the provided markdown content.
+                You can add sections, include links, references, and any other information you deem relevant.
+                When asked to create a canvas with prior content, ask the user whether there is a desired outline with sections, formatting, and sequencing preferred before creating the canvas.
+                Upon successful completion, provide the user a friendly confirmation including the canvas link in markdown.
+            label: "Create a Slack Canvas"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Creating Slack canvas..."
+            source: "Slack__CreateSlackCanvas"
+            target: "standardInvocableAction://slackAgentCreateCanvas"
+            inputs:
+                title: string
+                    description: "Concise but descriptive name for the canvas"
+                    label: "Title"
+                    is_required: True
+                    is_user_input: True
+                content: string
+                    description: "Markdown representation of canvas content."
+                    label: "Content"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                canvasId: string
+                    description: "The new Slack canvas ID."
+                    label: "Slack Canvas ID"
+                    filter_from_agent: False
+                    is_displayable: False
+                canvasUrl: string
+                    description: "The new Slack canvas URL."
+                    label: "Slack Canvas URL"
+                    filter_from_agent: False
+                    is_displayable: False
+        UpdateSlackCanvas:
+            description: |
+                Append markdown content to a Slack canvas document.
+                Always append new content and never duplicate content that was added in earlier prompts.
+                If no canvas ID is provided or it is ambiguous in the session context, confirm which canvas ID the user intends to update.
+                Upon successful completion, provide the user a friendly confirmation with a link to the canvas (in markdown).
+            label: "Update a Slack Canvas"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Updating Slack canvas..."
+            source: "Slack__UpdateSlackCanvas"
+            target: "standardInvocableAction://slackAgentUpdateCanvas"
+            inputs:
+                canvasId: string
+                    description: "Unique identifier of the existing canvas to be updated (e.g. F017CC8EGRG)."
+                    label: "Slack Canvas ID"
+                    is_required: True
+                    is_user_input: False
+                content: string
+                    description: "Markdown representation of canvas content."
+                    label: "Content"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                canvasId: string
+                    description: "The Slack canvas ID for the updated canvas."
+                    label: "Slack Canvas ID"
+                    filter_from_agent: False
+                    is_displayable: False
+                canvasUrl: string
+                    description: "The Slack canvas URL for the updated canvas."
+                    label: "Slack Canvas URL"
+                    filter_from_agent: False
+                    is_displayable: False
+        ShareSlackCanvas:
+            description: |
+                Shares a Slack Canvas with a set of users and/or channels.
+                If neither a list of Slack Users nor Slack Channels to share with is provided, ask the user for Slack User IDs and/or Slack Channel IDs.
+                If the user does not provide an access level for the shared Canvas, ask the user for it.
+                Upon successful completion, provide the user a friendly confirmation with a link to the canvas (in markdown) and at-mentions for the channels and/or Users the Canvas was shared with.
+            label: "Share a Slack Canvas"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Sharing a Slack canvas..."
+            source: "Slack__ShareSlackCanvas"
+            target: "slack://slackAgentDynamic__ShareSlackCanvas"
+            inputs:
+                canvasId: string
+                    description: "Unique identifier of the existing canvas to share (e.g. F017CC8EGRG)."
+                    label: "Slack Canvas ID"
+                    is_required: True
+                    is_user_input: True
+                userIds: string
+                    description: "A comma-separated list of Slack User IDs to share the provided Slack Canvas with."
+                    label: "Slack User IDs"
+                    is_required: False
+                    is_user_input: True
+                channelIds: string
+                    description: "A comma-separated list of Slack Channel IDs to share the provided Slack Canvas with."
+                    label: "Slack Channel IDs"
+                    is_required: False
+                    is_user_input: True
+                accessLevel: string
+                    description: "The access level for the shared Slack Canvas: view or edit."
+                    label: "accessLevel"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                canvasId: string
+                    description: "The Slack canvas ID for the updated canvas."
+                    label: "Slack Canvas ID"
+                    filter_from_agent: False
+                    is_displayable: False
+                canvasUrl: string
+                    description: "The Slack canvas URL for the updated canvas."
+                    label: "Slack Canvas URL"
+                    filter_from_agent: False
+                    is_displayable: False
+        CreateSlackRecordChannel:
+            description: "Given a Salesforce record ID, creates a corresponding record channel in Slack. Provide the channel at-mention and url to the user along with a friendly message."
+            inputs:
+                recordId: string
+                    description: "Salesforce record ID to be used in creating a matching Slack Record Channel."
+                    label: "Salesforce Record ID"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                channelId: string
+                    description: "The Slack record channel ID for the newly-created record channel."
+                    label: "Slack Channel ID"
+                    filter_from_agent: False
+                    is_displayable: False
+                channelUrl: string
+                    description: "The Slack record channel URL for the newly-created record channel."
+                    label: "Slack Channel URL"
+                    filter_from_agent: False
+                    is_displayable: True
+            target: "slack://slackAgentDynamic__CreateSlackRecordChannel"
+            label: "Create a Salesforce Channel in Slack"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Creating a Slack channel..."
+            source: "Slack__CreateSlackRecordChannel"
+
+        GetRecordDetails:
+            description: "Generates a text blob containing record details, including object fields and values and records from related lists."
+            inputs:
+                recordId: object
+                    description: "The ID of a Salesforce record to get the record details for."
+                    label: "Record ID"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__recordIdType"
+            outputs:
+                snapshot: string
+                    description: "Record details, including object fields and values, records from related lists, and more."
+                    label: "Record Details"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://getDataForGrounding"
+            label: "Get Record Details"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Getting details"
+            source: "EmployeeCopilot__GetRecordDetails"
+
+        ChannelExpertSearchSlack:
+            description: "Performs search on Slack for Channel Expert"
+            inputs:
+                searchQuery: string
+                    description: "Query to search Slack content."
+                    label: "Query"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                searchResults: string
+                    description: "The Slack search results, formatted as a JSON string."
+                    label: "Slack Search Results"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://slackAgentChannelExpertSearch"
+            label: "Channel Expert Search Slack"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Searching Slack Channel..."
+            source: "Slack__ChannelExpertSearchSlack"
+
+        SummarizeRecord:
+            description: "Summarizes a single Salesforce CRM record. You must call summarizeRecord only if the user explicitly asks for a summary (e.g: 'Summary', 'Recap', 'Highlights'). This action should be called only when there isn't a more specific summarization action."
+            inputs:
+                recordId: object
+                    description: "The ID of a Salesforce record used to generate the summary."
+                    label: "Record ID"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__recordIdType"
+            outputs:
+                recordSummary: object
+                    description: "The rich text summary generated for the specified record."
+                    label: "Record Summary"
+                    complex_data_type_name: "lightning__richTextType"
+                    filter_from_agent: True
+                    is_displayable: False
+            target: "standardInvocableAction://getRecordSummarizationPrompt"
+            label: "Summarize Record"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Summarizing"
+            source: "EmployeeCopilot__SummarizeRecord"
+
+        UpdateRecordFields:
+            description: "Updates fields on a Salesforce CRM record. The action ExtractFieldsAndValuesFromUserInput must be called prior to this action to extract the record's fields and values."
+            inputs:
+                recordDetailInput: object
+                    description: "Fields and their values for the record to be updated. This input is the exact output of the ExtractFieldsAndValuesFromUserInput action."
+                    label: "Record Detail Input"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__recordInfoType"
+            outputs:
+                recordDetailOutput: object
+                    description: "Fields and their values for the updated record."
+                    label: "Record Detail Output"
+                    complex_data_type_name: "lightning__recordInfoType"
+                    filter_from_agent: False
+                    is_displayable: True
+            target: "standardInvocableAction://einsteinCopilotUpdateRecord"
+            label: "Update Record"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Making updates"
+            source: "EmployeeCopilot__UpdateRecordFields"
+
+        SearchSlack:
+            description: |
+                Performs search on Slack
+                Search query input accepts the following forms:
+                - keywords (e.g. 'notes')
+                - phrases (e.g. 'meeting notes')
+                - questions (e.g. 'Where are the meeting notes for the sync meeting yesterday?')
+                When appropriate, (e.g. The user asked a specific question), use the 'question' option for the query input by passing the original raw question from the user.
+                Returns three types of objects:
+                * "messages": Slack messages found in Slack channels and are accessible to the acting user
+                * "files": Files found in Slack of all types that are accessible to the acting user
+                * "enterprise": Search result objects from various third party systems that are connected and authenticated by the acting user. Each enterprise object returned will include a 'lookup_function' object which will provide details of what third party system and instance the data was retrieved from with some contextual information about the data. Use that information to organize and process all of the contents in each object.
+                All three object types should be used to provide the user with a comprehensive summary by evaluating and considering the context of each object to best answer the user's query.
+        
+                Clarifications and Refinements: If the query is vague, ask clarifying questions. If search results are insufficient or outdated, suggest next steps.
+                Do not use any data or information outside of Slack's knowledge base. The agent should only retrieve and provide information that is available within the Slack workspace and should not pull from external sources
+        
+                Formatting Search Results:
+                * A string like <@U123456789> or <@W123456789> represents a User mention in Slack. You can extract a Slack User ID from a mention by removing the <@ and > characters. For example, the User ID in <@U123456789> is U123456789.
+                * A string like <#C123456789> or <#D123456789> represents a Channel mention in Slack. You can extract a Slack Channel ID from a mention by removing the <# and > characters. For example, the Channel ID in <#C123456789> is C123456789.
+                * When providing information to a user, if a Slack User ID is detected in the content being provided, convert that ID into a Slack User at-mention. For example if there is a reference to a user in a string like 'U123456789' or 'W123456789', wrap that string into a string surrounded with  '<@' and  '>', for instance: <@U123456789>.
+                * When providing information to a user, if a Slack Channel ID is detected in the content being provided, convert that ID into a Slack Channel mention. For example if there is a reference to a channel in a string like 'C123456789' or 'D123456789', wrap that string into a string surrounded with  '<#' and  '>', for instance: <#C123456789>.
+        
+                Processing Search Results:
+                * Retrieve and analyze search results.
+                * Summarize relevant responses clearly and concisely.
+                * If multiple relevant messages exist, synthesize the information into a coherent answer.
+                * If no useful results are found, acknowledge the lack of results and suggest rephrasing the query or asking in relevant Slack channels.
+                * Do not list the individual messages or their content. Instead, identify recurring themes, keywords, or subjects.
+                Example:
+                    * User Prompt: 'Find messages about project deadlines.';
+                    * Response: 'The messages discuss topics such as project timelines, task assignments, and upcoming deliverables.'
+        
+                General Questions: For general questions, provide summaries as usual. Process the messages.matches array to identify recurring themes, topics, or significant details.
+        
+                Error or No Data Scenarios:
+                * If the search query returns no matching messages, respond appropriately: 'No messages were found matching your search criteria. Please refine your query and try again.'
+            inputs:
+                query: string
+                    description: "Query to search Slack content."
+                    label: "Query"
+                    is_required: True
+                    is_user_input: True
+                contentTypes: string
+                    description: "Content types to include in the results of the search. A comma-separated list of any combination of: 'messages', 'files', 'enterprise'."
+                    label: "Content Types"
+                    is_required: False
+                    is_user_input: True
+                channelTypes: string
+                    description: "Channel types to include in the results of the search. A comma-separated list of any combination of: 'public', 'private', 'dm', 'mpdm'."
+                    label: "Channel Types"
+                    is_required: False
+                    is_user_input: True
+                contextChannelId: string
+                    description: "Context channel ID to support scoping the search when applicable. If the session context contains a slack_channel variable, that should be passed to this input."
+                    label: "Context channel ID"
+                    is_required: False
+                    is_user_input: False
+                includeChannels: string
+                    description: "Include channels"
+                    label: "Include channels"
+                    is_required: False
+                    is_user_input: True
+                excludeChannels: string
+                    description: "Exclude channels"
+                    label: "Exclude channels"
+                    is_required: False
+                    is_user_input: True
+            outputs:
+                results: string
+                    description: "The Slack search results, formatted as a JSON string."
+                    label: "Slack Search Results"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://slackAgentSearch"
+            label: "Search Slack"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Searching Slack..."
+            source: "Slack__SearchSlack"
+
+        IdentifyRecordByName:
+            description: "Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs."
+            inputs:
+                recordName: string
+                    description: "The name or title of the Salesforce record extracted from user input. The name can be used to find a Salesforce CRM record."
+                    label: "recordName"
+                    is_required: True
+                    is_user_input: True
+                objectApiName: string
+                    description: "The API name of the Salesforce object (such as Account or Opportunity) associated with the record the user wants to find. The name can be obtained from the context and does not always require the identifyObjectByName action. (eg. IdentifyRecordByName(recordName=\"Paul\", objectApiName=\"user\")). Leave empty to check with all possible objectApiNames. Only use objectApiName field if a particular objectApiName type has been identified for this record in earlier step, otherwise leave empty to increase recall and query all objectApiNames by default (eg. IdentifyRecordByName(recordName=\"Paul\"))."
+                    label: "objectApiName"
+                    is_required: False
+                    is_user_input: False
+            outputs:
+                searchResults: list[object]
+                    description: "A list of the matching Salesforce record ids in descending order of relevance."
+                    label: "searchResults"
+                    complex_data_type_name: "lightning__recordInfoType"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://identifyRecordByName"
+            label: "Identify Record by Name"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            source: "EmployeeCopilot__IdentifyRecordByName"
+
+        PersonalizeContext:
+            description: "Improve agent decisioning with real-time access to summarized, personalization data."
+            inputs:
+                sourceId: string
+                    description: "Identifier for the agent calling the action."
+                    label: "Source ID"
+                    is_required: True
+                    is_user_input: False
+                individualId: string
+                    description: "The individual ID associated with a Data Cloud profile."
+                    label: "Individual ID"
+                    is_required: True
+                    is_user_input: False
+                individualKeyQualifier: string
+                    description: "The key that uniquely identifies an individual when the same ID is present in multiple data sources."
+                    label: "Individual Key Qualifier"
+                    is_required: False
+                    is_user_input: False
+                subjectId: string
+                    description: "The ID of the topic that's used by the personalization context action to determine relevant profile data. This decision is based on the topics instructions and associated actions."
+                    label: "Subject ID"
+                    is_required: False
+                    is_user_input: False
+            outputs:
+                personalizedContext: string
+                    description: "Information about the user interacting with the agent"
+                    label: "Personalized Context"
+                    filter_from_agent: False
+                    is_displayable: True
+                isSuccess: boolean
+                    description: "Indicates whether the profile was successfully retrieved"
+                    label: "Success"
+                    filter_from_agent: False
+                    is_displayable: True
+            target: "standardInvocableAction://createContextPersonalization"
+            label: "Personalization: Get Context"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Creating a personalized context for you..."
+            source: "Personalization__PersonalizeContext"
+
+        IdentifyObjectByName:
+            description: "Finds the Salesforce object API name by extracting an object name from the user input."
+            inputs:
+                objectName: string
+                    description: "Term representing a salesforce object name from which we want to retrieve the matching api names. For instance for the query \"list the reports from user Marc\", IdentifyObjectByName could be called 2 times, with objectName=\"reports\" and objectName=\"user\"."
+                    label: "objectName"
+                    is_required: True
+                    is_user_input: False
+            outputs:
+                objectApiNames: list[object]
+                    description: "A list of the matching API names of Salesforce object types."
+                    label: "objectApiNames"
+                    complex_data_type_name: "lightning__textType"
+                    filter_from_agent: False
+                    is_displayable: True
+            target: "standardInvocableAction://identifyObject"
+            label: "Identify Object by Name"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            source: "EmployeeCopilot__IdentifyObjectByName"
+
+        QueryRecords:
+            description: "Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type. e.g. 'Find all open opportunities created in the last 5 days sorted by created date.'"
+            inputs:
+                query: string
+                    description: "The question or request from the user's input. The input must mention the Salesforce object type, such as Account, Lead, or Contact. Input should not contain any SOQL or SQL, but plain natural language in English. Do not generate SQL or SOQL."
+                    label: "query"
+                    is_required: True
+                    is_user_input: True
+                customizationInstructions: string
+                    description: "Custom instructions for the action from the user's input to optimize the query."
+                    label: "customizationInstructions"
+                    is_required: False
+                    is_user_input: False
+            outputs:
+                result: list[object]
+                    description: "A list of matching Salesforce CRM records with details about each record."
+                    label: "result"
+                    complex_data_type_name: "lightning__recordInfoType"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "standardInvocableAction://queryRecords"
+            label: "Query Records"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            source: "EmployeeCopilot__QueryRecords"
+
+        ArchiveSlackChannel:
+            description: |
+                Archives a Slack Channel, given a Slack Channel ID. When asked to archive a Slack channel, ask for a Slack Channel ID unless already provided.
+                Upon successful completion, provide the user a friendly confirmation with the channel at-mention and url.
+            inputs:
+                channelId: string
+                    description: "The Slack Channel ID of the Slack Channel to be archived."
+                    label: "Slack Channel ID"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                channelId: string
+                    description: "The Slack Channel ID of the Slack Channel that was archived."
+                    label: "Slack Channel ID"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "slack://slackAgentDynamic__ArchiveSlackChannel"
+            label: "Archive a Slack Channel"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Archiving a Slack channel..."
+            source: "Slack__ArchiveSlackChannel"
+
+        LookupSlackRecordChannel:
+            description: |
+                Given a Salesforce record ID, looks up the corresponding record channel in Slack.
+                Upon successful completion, provide the channel at-mention and url to the user along with a friendly message.
+            inputs:
+                recordId: string
+                    description: "Salesforce record ID to be used in search for a matching Slack Record Channel."
+                    label: "Salesforce Record ID"
+                    is_required: True
+                    is_user_input: True
+            outputs:
+                channelId: string
+                    description: "The Slack record channel ID for the provided Salesforce record ID."
+                    label: "Slack Channel ID"
+                    filter_from_agent: True
+                    is_displayable: False
+                channelUrl: string
+                    description: "The Slack record channel URL for the provided Salesforce record ID."
+                    label: "Slack Channel URL"
+                    filter_from_agent: False
+                    is_displayable: False
+            target: "slack://slackAgentDynamic__LookupSlackRecordChannel"
+            label: "Look Up a Salesforce Channel in Slack"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking up a Salesforce Channel in Slack..."
+            source: "Slack__LookupSlackRecordChannel"
+
+        GetSlackUser:
+            description: "Given a Salesforce user ID, looks up the corresponding Slack user ID."
+            inputs:
+                salesforceUserId: object
+                    description: "Salesforce user ID, which is used to get a corresponding Slack user ID."
+                    label: "Salesforce User ID"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__recordIdType"
+            outputs:
+                slackUserId: string
+                    description: "The Slack user ID."
+                    label: "Slack User ID"
+                    filter_from_agent: False
+                    is_displayable: True
+            target: "standardInvocableAction://slackAgentGetUser"
+            label: "Look Up a Slack User"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking Up a Slack user..."
+            source: "Slack__GetSlackUser"
+
+topic escalation:
+    label: "Escalation"
+
+    description: "Handles requests to transfer or escalate to a live human agent."
+
+    reasoning:
+        instructions: ->
+            | If a user explicitly asks to transfer to a live agent, call {!@actions.escalate_to_human}.
+            | If escalation fails, explain and ask whether they want to log a support case.
+
+        actions:
+            escalate_to_human: @utils.escalate
+                description: "Escalate conversation to a human agent."
+
+topic off_topic:
+    label: "Off Topic"
+
+    description: "Redirect requests to management Slack capabilities."
+
+    reasoning:
+        instructions: ->
+            | Redirect politely to supported capabilities:
+            | - budget and overrun alerts
+            | - closure notifications
+            | - create/invite/notify in Slack channels
+            | - create, update, or share Slack Canvas
+            | - list project assignments and related Salesforce records
+
+topic ambiguous_question:
+    label: "Ambiguous Question"
+
+    description: "Ask clarifying details when request is too vague."
+
+    reasoning:
+        instructions: ->
+            | Ask one concise clarifying question focused on the user's top priority.
+
+connection slack:
+    empty

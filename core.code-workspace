@@ -1,0 +1,19 @@
+{
+  "folders": [
+    {
+      "path": "c:/Users/esti2/OneDrive/Escritorio/Trabajo/Ventix/Agentforce/Agentforce"
+    }
+  ],
+  "settings": {
+    "eslint.workingDirectories": [
+      "c:/Users/esti2/OneDrive/Escritorio/Trabajo/Ventix/Agentforce/Agentforce"
+    ],
+    "eslint.validate": [
+      "javascript",
+      "typescript"
+    ],
+    "eslint.options": {
+      "overrideConfigFile": "c:\\Users\\esti2\\OneDrive\\Escritorio\\Trabajo\\Ventix\\Agentforce\\Agentforce\\.eslintrc.json"
+    }
+  }
+}
