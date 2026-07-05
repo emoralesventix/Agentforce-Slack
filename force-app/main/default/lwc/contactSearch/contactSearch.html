@@ -1,0 +1,56 @@
+<template>
+    <lightning-card title="">
+        <div class="slds-grid slds-card" style="height: 950px">
+            <!-- Filtros y resultados -->
+            <div class="slds-col slds-size_2-of-3 slds-p-around_medium">
+                <div class="slds-grid slds-gutters">
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-combobox
+                            label="Filter by Account"
+                            value={selectedAccountId}
+                            placeholder="Select an Account"
+                            options={accountOptions}
+                            onchange={handleAccountChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            label="Search by Contact Name"
+                            value={searchName}
+                            placeholder="Type name..."
+                            onchange={handleNameChange}>
+                        </lightning-input>
+                    </div>
+                </div>
+
+                <div class="slds-m-top_medium">
+                    <lightning-button
+                        label="Clear Filters"
+                        onclick={handleClearFilters}>
+                    </lightning-button>
+                </div>
+
+                <template if:true={showNoResultsMessage}>
+                    <p class="slds-text-color_weak slds-p-top_medium">
+                        No contacts found with current filters.
+                    </p>
+                </template>
+                <div class="slds-p-around_medium">
+                    <lightning-datatable
+                        class="slds-m-top_medium"
+                        key-field="Id"
+                        data={contacts}
+                        columns={columns}
+                        hide-checkbox-column>
+                    </lightning-datatable>
+                </div>
+            </div>
+
+            <!-- Sidebar con la query generada -->
+            <div class="slds-col slds-size_1-of-3 slds-p-around_medium" style="background:#f4f6f9; border-left: 1px solid #ddd;">
+                <h3 class="slds-text-heading_small slds-m-bottom_small">Generated GraphQL Query</h3>
+                <pre style="font-size: 0.75rem; white-space: pre-wrap; word-break: break-word;">{rawQueryText}</pre>
+            </div>
+        </div>
+    </lightning-card>
+</template>

@@ -1,0 +1,18 @@
+{
+  "title" : "Daily_Time_Submission_Anomaly_AuditSend_Time_Anomaly_Alert_with_Management_Assistant",
+  "lightning:type" : "lightning__objectType",
+  "properties" : {
+    "Test" : {
+      "description" : "Test",
+      "lightning:type" : "lightning__textType",
+      "title" : "Test"
+    },
+    "test2" : {
+      "description" : "test",
+      "lightning:type" : "lightning__textType",
+      "title" : "test2"
+    }
+  },
+  "required" : [ ],
+  "lightning:tags" : [ "flow" ]
+}

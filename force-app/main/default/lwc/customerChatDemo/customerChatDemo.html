@@ -1,0 +1,53 @@
+<template>
+    <section class="chat-shell" aria-label="Customer chat demo">
+        <header class="chat-header slds-grid slds-grid_vertical-align-center slds-p-horizontal_small slds-p-vertical_x-small">
+            <div class="slds-col slds-grow slds-grid slds-grid_vertical-align-center slds-truncate">
+                <div class="avatar slds-m-right_small" aria-hidden="true">
+                    <lightning-icon icon-name="standard:avatar" size="small" alternative-text=""></lightning-icon>
+                </div>
+                <div class="slds-truncate">
+                    <div class="slds-text-heading_small slds-truncate" title={contactName}>{contactName}</div>
+                    <div class="slds-text-body_small header-subtitle slds-truncate" title={headerSubtitle}>{headerSubtitle}</div>
+                </div>
+            </div>
+
+            <div class="slds-col slds-shrink-none slds-grid slds-gutters_xx-small">
+                <button class="header-icon" type="button" title="Refresh" aria-label="Refresh" disabled>
+                    <lightning-icon icon-name="utility:refresh" size="x-small" alternative-text=""></lightning-icon>
+                </button>
+                <button class="header-icon" type="button" title="Menu" aria-label="Menu" disabled>
+                    <lightning-icon icon-name="utility:down" size="x-small" alternative-text=""></lightning-icon>
+                </button>
+            </div>
+        </header>
+
+        <div class="chat-body" data-chat-scroll>
+            <template for:each={normalizedMessages} for:item="message">
+                <div key={message.id} class={message.rowClass}>
+                    <div class={message.bubbleClass} role="group" aria-label="Message">
+                        <div class="bubble-text">{message.text}</div>
+                        <div class="bubble-meta">{message.timeLabel}</div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <footer class="chat-footer slds-grid slds-grid_vertical-align-center slds-p-around_x-small">
+            <button class="footer-icon" type="button" title="Emoji" aria-label="Emoji" disabled>
+                <lightning-icon icon-name="utility:emoji" size="x-small" alternative-text=""></lightning-icon>
+            </button>
+            <div class="slds-grow slds-m-horizontal_x-small">
+                <lightning-textarea
+                    class="message-input"
+                    value={draftMessage}
+                    onchange={handleDraftChange}
+                    placeholder="Escribe un mensaje… (demo)"
+                    disabled>
+                </lightning-textarea>
+            </div>
+            <button class="send-button" type="button" title="Send" aria-label="Send" disabled>
+                <lightning-icon icon-name="utility:send" size="x-small" alternative-text=""></lightning-icon>
+            </button>
+        </footer>
+    </section>
+</template>

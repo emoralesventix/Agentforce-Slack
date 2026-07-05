@@ -1,0 +1,85 @@
+<template>
+    <lightning-card title="LWC Complex Expressions — Spring '26" icon-name="utility:apex">
+        <div class="slds-p-around_medium">
+
+            <!-- SECTION 1: TEMPLATE LITERAL -->
+            <div class="slds-box slds-m-bottom_medium demo-section">
+                <h3 class="demo-label">1. Template Literal</h3>
+                <p class="before-label">❌ Before: <code>get fullName() &#123; return ... &#125;</code></p>
+                <p class="after-label">✅ Now: <code>&#123;`$&#123;firstName&#125; $&#123;lastName&#125;`&#125;</code></p>
+                <div class="result-box">
+                    Full name: <strong>{`${firstName} ${lastName}`}</strong>
+                </div>
+            </div>
+
+            <!-- SECTION 2: TERNARY -->
+            <div class="slds-box slds-m-bottom_medium demo-section">
+                <h3 class="demo-label">2. Ternary</h3>
+                <p class="before-label">❌ Before: getter or &lt;template if:true&gt; / &lt;template if:false&gt;</p>
+                <p class="after-label">✅ Now: <code>&#123;loggedIn ? 'Welcome!' : 'Please log in'&#125;</code></p>
+                <div class="result-box">
+                    Status: <strong>{loggedIn ? '👋 Welcome!' : '🔒 Please log in'}</strong>
+                </div>
+                <lightning-button
+                    label={loginButtonLabel}
+                    onclick={toggleLogin}
+                    class="slds-m-top_small"
+                    variant={loginButtonVariant}>
+                </lightning-button>
+            </div>
+
+            <!-- SECTION 3: OPTIONAL CHAINING + NULL COALESCING -->
+            <div class="slds-box slds-m-bottom_medium demo-section">
+                <h3 class="demo-label">3. Optional Chaining ?. + Null Coalescing ??</h3>
+                <p class="before-label">❌ Before: <code>user &amp;&amp; user.profile &amp;&amp; ... ? theme : 'default'</code></p>
+                <p class="after-label">✅ Now: <code>&#123;user?.profile?.theme ?? 'default'&#125;</code></p>
+                <div class="result-box">
+                    Theme: <strong>{user?.profile?.theme ?? 'default'}</strong>
+                    &nbsp;|&nbsp;
+                    Plan: <strong>{user?.profile?.plan ?? 'Free'}</strong>
+                </div>
+            </div>
+
+            <!-- SECTION 4: ARRAY METHODS -->
+            <div class="slds-box slds-m-bottom_medium demo-section">
+                <h3 class="demo-label">4. Array Methods — filter + length</h3>
+                <p class="before-label">❌ Before: <code>get stockCount() &#123; return this.items.filter(...).length; &#125;</code></p>
+                <p class="after-label">✅ Now: <code>&#123;items.filter(i =&gt; i.inStock).length&#125;</code></p>
+                <div class="result-box">
+                    In stock: <strong>{items.filter(i => i.inStock).length}</strong> of {items.length}
+                    &nbsp;|&nbsp;
+                    Minimum price: <strong>${minInStockPrice}</strong>
+                </div>
+            </div>
+
+            <!-- SECTION 5: DYNAMIC EVENT LISTENERS (lwc:on) -->
+            <div class="slds-box slds-m-bottom_medium demo-section">
+                <h3 class="demo-label">5. Dynamic Event Listeners — lwc:on</h3>
+                <p class="before-label">❌ Before: <code>&lt;button onclick=&#123;handleItemClick&#125;&gt;</code></p>
+                <p class="after-label">✅ Now: <code>&lt;button lwc:on=&#123;itemEventHandlers&#125;&gt;</code></p>
+
+                <div class="slds-grid slds-wrap slds-gutters_x-small slds-m-top_small">
+                    <template for:each={enrichedItems} for:item="item">
+                        <div key={item.id} class="slds-col slds-size_1-of-3 slds-m-bottom_x-small">
+                            <button
+                                class={item.cssClass}
+                                data-id={item.id}
+                                lwc:on={itemEventHandlers}>
+                                <span class="item-name">{item.name}</span>
+                                <span class="item-price">${item.price}</span>
+                                <span class="item-badge">{item.stockLabel}</span>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                <template if:true={lastClicked}>
+                    <div class="result-box slds-m-top_small">
+                        ✅ Last clicked: <strong>{lastClicked}</strong>
+                    </div>
+                </template>
+            </div>
+
+        </div>
+    </lightning-card>
+</template>

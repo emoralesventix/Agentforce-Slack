@@ -1,0 +1,160 @@
+<template>
+    <section class="dash-shell" aria-label="Dapsa stations performance dashboard demo">
+        <div class="dash-grid">
+            <!-- Top row -->
+            <article class="card light card-kpi">
+                <div class="card-header">
+                    <div class="title-row">
+                        <img class="brand-mark" src={logoUrl} alt="Dapsa" />
+                        <div>
+                            <div class="card-title">Ventas en Pesos</div>
+                            <div class="card-subtitle">{asOfLabel}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hover-wrap">
+                    <div class="kpi-value">{kpi.revenueMtdLabel}</div>
+                    <section class="hover-popover" role="tooltip">
+                        <div class="hover-title">Detalle MTD</div>
+                        <div class="hover-row"><span>Nafta Super</span><span>ARS 1,6M</span></div>
+                        <div class="hover-row"><span>Diesel</span><span>ARS 1,3M</span></div>
+                        <div class="hover-row"><span>Nafta Premium</span><span>ARS 0,8M</span></div>
+                        <div class="hover-row"><span>Euro Diesel</span><span>ARS 0,3M</span></div>
+                        <div class="hover-foot">Top estación: Dapsa Palermo · ARS 980k</div>
+                    </section>
+                </div>
+                <div class="kpi-footnote">MTD · Ingresos consolidados</div>
+            </article>
+
+            <article class="card light card-bars">
+                <div class="card-header">
+                    <div class="card-title">Ventas por Día</div>
+                    <div class="card-subtitle">{asOfLabel}</div>
+                </div>
+                <div class="bars">
+                    <template for:each={salesBars} for:item="b">
+                        <div key={b.dayLabel} class="bar-col">
+                            <div class="bar" style={b.style}></div>
+                            <div class="bar-value">{b.display}</div>
+                            <div class="bar-label">{b.dayLabel}</div>
+                        </div>
+                    </template>
+                </div>
+                <div class="chart-foot">
+                    <span class="foot-link">View Report (Conversaciones de IA)</span>
+                </div>
+            </article>
+
+            <article class="card dark card-scatter">
+                <div class="card-header">
+                    <div class="card-title">Cantidad de Ventas y Pesos</div>
+                    <div class="card-subtitle">{asOfLabel}</div>
+                </div>
+                <div class="scatter-shell">
+                    <div class="scatter-axis-y">ARS</div>
+                    <div class="scatter-area">
+                        <div class="scatter-grid"></div>
+                        <div class="scatter-dot d1"></div>
+                        <div class="scatter-dot d2"></div>
+                        <div class="scatter-dot d3"></div>
+                        <div class="scatter-dot d4"></div>
+                        <div class="scatter-dot d5"></div>
+                    </div>
+                    <div class="scatter-axis-x">Record Count</div>
+                </div>
+                <div class="semaphores" aria-label="Semáforos operativos">
+                    <template for:each={semaphores} for:item="s">
+                        <div key={s.id} class="semaphore">
+                            <div class="semaphore-top">
+                                <div class="semaphore-title">{s.title}</div>
+                                <div class={s.dotClass} aria-hidden="true"></div>
+                            </div>
+                            <div class="semaphore-value">{s.value}</div>
+                        </div>
+                    </template>
+                </div>
+            </article>
+
+            <!-- Bottom row -->
+            <article class="tile dark">
+                <div class="tile-title">Ventas hoy</div>
+                <div class="hover-wrap">
+                    <div class="tile-value tile-red">{kpi.totalSalesCount}</div>
+                    <section class="hover-popover hover-popover-dark" role="tooltip">
+                        <div class="hover-title">Detalle (7 días)</div>
+                        <div class="hover-row"><span>Super</span><span>4</span></div>
+                        <div class="hover-row"><span>Diesel</span><span>3</span></div>
+                        <div class="hover-row"><span>Premium</span><span>2</span></div>
+                        <div class="hover-foot">Ticket promedio: ARS 445k</div>
+                    </section>
+                </div>
+                <div class="tile-mini-chart" aria-hidden="true">
+                    <svg viewBox="0 0 260 60" class="spark" aria-hidden="true">
+                        <polyline points={salesTodaySparklinePoints} fill="none" stroke="#e31b23" stroke-width="3" />
+                    </svg>
+                </div>
+            </article>
+
+            <article class="tile dark">
+                <div class="tile-title">Cant Conversaciones</div>
+                <div class="hover-wrap">
+                    <div class="tile-value tile-green">{kpi.conversationsCountLabel}</div>
+                    <section class="hover-popover hover-popover-dark" role="tooltip">
+                        <div class="hover-title">Detalle (MTD)</div>
+                        <div class="hover-row"><span>WhatsApp</span><span>4,2k</span></div>
+                        <div class="hover-row"><span>Web</span><span>1,1k</span></div>
+                        <div class="hover-row"><span>Teléfono</span><span>0,5k</span></div>
+                        <div class="hover-foot">Auto-resueltas: 63%</div>
+                    </section>
+                </div>
+                <div class="tile-mini-chart" aria-hidden="true">
+                    <svg viewBox="0 0 260 60" class="spark" aria-hidden="true">
+                        <polyline points={conversationsSparklinePoints} fill="none" stroke="#2dd4bf" stroke-width="3" />
+                    </svg>
+                </div>
+            </article>
+
+            <article class="tile dark">
+                <div class="tile-title">Entregas a Tiempo</div>
+                <div class="hover-wrap">
+                    <div class="tile-value tile-white">{kpi.onTimeDeliveryRateLabel}</div>
+                    <section class="hover-popover hover-popover-dark" role="tooltip">
+                        <div class="hover-title">Detalle (últimos 7 días)</div>
+                        <div class="hover-row"><span>Prom. demora</span><span>{kpi.avgDeliveryDelayMinutesLabel}</span></div>
+                        <div class="hover-row"><span>P95 demora</span><span>41 min</span></div>
+                        <div class="hover-row"><span>Top causa</span><span>Tránsito urbano</span></div>
+                        <div class="hover-foot">Cumplimiento por zona: CABA 96% · GBA 93% · Interior 92%</div>
+                    </section>
+                </div>
+                <div class="tile-spark">
+                    <svg viewBox="0 0 260 60" class="spark" aria-hidden="true">
+                        <polyline points={deliveriesSparklinePoints} fill="none" stroke="#2dd4bf" stroke-width="3" />
+                    </svg>
+                </div>
+            </article>
+
+            <article class="card light card-table">
+                <div class="card-header">
+                    <div class="card-title">Top Estaciones (MTD)</div>
+                    <div class="card-subtitle">Ventas, litros y puntualidad de entrega</div>
+                </div>
+                <div class="table">
+                    <div class="thead">
+                        <div>Estación</div>
+                        <div class="right">Ventas</div>
+                        <div class="right">Litros</div>
+                        <div class="right">On-time</div>
+                    </div>
+                    <template for:each={normalizedStations} for:item="s">
+                        <div key={s.id} class="trow">
+                            <div class="station-name">{s.name}</div>
+                            <div class="right">{s.revenueLabel}</div>
+                            <div class="right">{s.litersLabel}</div>
+                            <div class="right">{s.onTimeLabel}</div>
+                        </div>
+                    </template>
+                </div>
+            </article>
+        </div>
+    </section>
+</template>

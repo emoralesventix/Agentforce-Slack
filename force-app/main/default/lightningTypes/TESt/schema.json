@@ -1,0 +1,20 @@
+{
+  "description" : "",
+  "lightning:type" : "lightning__objectType",
+  "title" : "TESt",
+  "properties" : {
+    "caseNumber" : {
+      "title" : "caseNumber",
+      "description" : "",
+      "lightning:type" : "lightning__textType"
+    },
+    "priority" : {
+      "title" : "priority",
+      "lightning:type" : "lightning__textType"
+    },
+    "description" : {
+      "title" : "description",
+      "lightning:type" : "lightning__textType"
+    }
+  }
+}

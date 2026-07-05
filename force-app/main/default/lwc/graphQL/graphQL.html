@@ -1,0 +1,203 @@
+<template>
+    <lightning-card title="GraphQL Data Table Demo" icon-name="standard:data_mapping">
+        <div class="slds-p-around_medium">
+            
+            <!-- Header -->
+            <div class="slds-text-align_center slds-m-bottom_large">
+                <h1 class="slds-text-heading_large slds-text-color_brand">
+                    GraphQL Data Table
+                </h1>
+                <p class="slds-text-body_regular slds-m-top_small">
+                    Filter Account data using GraphQL variables
+                </p>
+            </div>
+
+            <!-- Two Column Layout -->
+            <div class="slds-grid slds-gutters">
+                <!-- Left Column - Filters and Data -->
+                <div class="slds-col slds-size_1-of-2">
+                    <!-- Filter Controls -->
+                    <div class="slds-box slds-m-bottom_medium">
+                        <h2 class="slds-text-heading_medium slds-m-bottom_small">
+                            Filters
+                        </h2>
+                        
+                        <div class="slds-grid slds-gutters slds-m-bottom_small">
+                            <!-- Industry Filter -->
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-combobox
+                                    name="industry"
+                                    label="Industry"
+                                    placeholder="Select an industry..."
+                                    value={industryFilter}
+                                    options={industryOptions}
+                                    onchange={handleIndustryChange}>
+                                </lightning-combobox>
+                            </div>
+                            
+                            <!-- Reset Button -->
+                            <div class="slds-col slds-size_1-of-2 slds-text-align_right">
+                                <div class="slds-m-top_large">
+                                    <lightning-button 
+                                        label="Reset Filters" 
+                                        onclick={resetFilters}
+                                        variant="neutral">
+                                    </lightning-button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Employee Range Sliders -->
+                        <div class="slds-m-top_small">
+                            <h3 class="slds-text-heading_small slds-m-bottom_x-small">Number of Employees Range</h3>
+                            <div class="slds-grid slds-gutters">
+                                <div class="slds-col slds-size_1-of-2">
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label" for="minEmployees">Min: {minEmployees}</label>
+                                        <div class="slds-form-element__control">
+                                            <input 
+                                                type="range" 
+                                                id="minEmployees"
+                                                class="slds-slider" 
+                                                min="0" 
+                                                max="10000" 
+                                                step="100"
+                                                value={minEmployees}
+                                                onchange={handleMinEmployeesChange}>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label" for="maxEmployees">Max: {maxEmployees}</label>
+                                        <div class="slds-form-element__control">
+                                            <input 
+                                                type="range" 
+                                                id="maxEmployees"
+                                                class="slds-slider" 
+                                                min="0" 
+                                                max="10000" 
+                                                step="100"
+                                                value={maxEmployees}
+                                                onchange={handleMaxEmployeesChange}>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <template if:true={isLoading}>
+                        <div class="slds-text-align_center slds-p-around_large">
+                            <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+                            <p class="slds-m-top_medium">Loading data with GraphQL...</p>
+                        </div>
+                    </template>
+
+                    <!-- Error State -->
+                    <template if:true={hasError}>
+                        <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error">
+                            <span class="slds-assistive-text">Error</span>
+                            <h2>Error loading data</h2>
+                            <p>{hasError.message}</p>
+                        </div>
+                    </template>
+
+                    <!-- Data Table with Contacts Subtree -->
+                    <template if:true={hasData}>
+                        <div class="slds-box slds-m-bottom_medium">
+                            <div class="slds-grid slds-grid_align-spread slds-m-bottom_small">
+                                <div class="slds-col slds-grow">
+                                    <h2 class="slds-text-heading_medium">
+                                        Results: {paginationInfo.showingCount} of {paginationInfo.totalCount} Accounts
+                                    </h2>
+                                </div>
+                                <div class="slds-col slds-no-flex">
+                                    <span class="slds-badge slds-badge_inverse">
+                                        Page {paginationInfo.pageNumber}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Tree Grid with Accounts and Contacts -->
+                            <lightning-tree-grid
+                                data={accounts}
+                                columns={columns}
+                                key-field="Id"
+                                hide-checkbox-column="true"
+                                max-row-selection="1"
+                                onrowaction={handleRowAction}
+                                onrowselection={handleRowSelection}
+                                onrowcollapse={handleRowCollapse}
+                                onrowexpand={handleRowExpand}>
+                            </lightning-tree-grid>
+                            
+                            <!-- Pagination Controls -->
+                            <div class="slds-grid slds-grid_align-spread slds-m-top_medium slds-p-top_small" style="border-top: 1px solid #e5e5e5;">
+                                <div class="slds-col slds-no-flex">
+                                    <lightning-button-group>
+                                        <lightning-button 
+                                            label="First" 
+                                            onclick={handleFirstPage}
+                                            disabled={isFirstPage}
+                                            variant="neutral">
+                                        </lightning-button>
+                                        <lightning-button 
+                                            label="Previous" 
+                                            onclick={handlePreviousPage}
+                                            disabled={cannotGoPrevious}
+                                            variant="neutral">
+                                        </lightning-button>
+                                    </lightning-button-group>
+                                </div>
+                                
+                                <div class="slds-col slds-align_absolute-center">
+                                    <span class="slds-text-body_small slds-text-color_weak">
+                                        Page {paginationInfo.pageNumber} • {paginationInfo.showingCount} of {paginationInfo.totalCount} records
+                                    </span>
+                                </div>
+                                
+                                <div class="slds-col slds-no-flex">
+                                    <lightning-button-group>
+                                        <lightning-button 
+                                            label="Next" 
+                                            onclick={handleNextPage}
+                                            disabled={cannotGoNext}
+                                            variant="brand">
+                                        </lightning-button>
+                                    </lightning-button-group>
+                                </div>
+                            </div>
+                    </div>
+                </template>
+
+                    <!-- No Data State -->
+                    <template if:false={hasData}>
+                        <div class="slds-text-align_center slds-p-around_large">
+                            <div class="slds-box slds-theme_shade">
+                                <h3 class="slds-text-heading_medium">No data found</h3>
+                                <p class="slds-text-body_regular slds-m-top_small">
+                                    Try adjusting your filters or check if you have Account records in your org.
+                                </p>
+                            </div>
+            </div>
+        </template>
+                </div>
+
+                <!-- Right Column - GraphQL Query Only -->
+                <div class="slds-col slds-size_1-of-2">
+                    <!-- GraphQL Query Display -->
+                    <div class="slds-box" style="height: 100%; min-height: 600px;">
+                        <h3 class="slds-text-heading_medium slds-m-bottom_medium slds-text-align_center">
+                            Live GraphQL Query
+                        </h3>
+                        <div class="slds-theme_shade slds-p-around_medium" style="height: calc(100% - 60px); overflow-y: auto;">
+                            <pre class="slds-text-body_small" style="white-space: pre-wrap; word-wrap: break-word; line-height: 1.4;"><code>{graphqlQueryDisplay}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+</template>

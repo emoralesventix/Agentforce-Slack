@@ -1,0 +1,91 @@
+<template>
+    <section class="shell" aria-label="Account statement demo">
+        <header class="header slds-p-around_small">
+            <div class="slds-grid slds-wrap slds-grid_vertical-align-center slds-gutters_small">
+                <div class="slds-col slds-size_1-of-1 slds-large-size_7-of-12">
+                    <div class="header-title-row slds-grid slds-grid_vertical-align-center">
+                        <img class="brand-logo slds-m-right_small" src={logoUrl} alt="Dapsa" />
+                        <div>
+                            <div class="slds-text-heading_small">Cuenta corriente (demo)</div>
+                            <div class="slds-text-body_small header-subtitle">
+                                Pedidos y pagos consolidados · {currencyIsoCode}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slds-col slds-size_1-of-1 slds-large-size_5-of-12 slds-text-align_right">
+                    <span class={balancePillClass}>{balanceLabel}</span>
+                </div>
+            </div>
+
+            <div class="summary slds-m-top_small">
+                <div class="summary-item">
+                    <div class="summary-label">Total entregado</div>
+                    <div class="summary-value">{totalDeliveredLabel}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Total pagado</div>
+                    <div class="summary-value">{totalPaidLabel}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Saldo neto</div>
+                    <div class="summary-value">{netBalanceLabel}</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="body slds-p-around_small">
+            <template for:each={normalizedOrders} for:item="order">
+                <article key={order.id} class="order-card slds-m-bottom_small">
+                    <div class="order-header slds-grid slds-wrap slds-grid_vertical-align-center slds-gutters_small">
+                        <div class="slds-col slds-size_1-of-1 slds-large-size_7-of-12">
+                            <div class="slds-grid slds-grid_vertical-align-center slds-wrap">
+                                <div class="order-title slds-text-heading_small">{order.title}</div>
+                                <span class={order.orderBalancePillClass}>{order.orderBalanceLabel}</span>
+                            </div>
+                            <div class="order-subtitle slds-text-body_small">
+                                {order.fuelLabel} · Entrega {order.deliveryDateLabel} · Canal {order.channelLabel}
+                            </div>
+                        </div>
+
+                        <div class="slds-col slds-size_1-of-1 slds-large-size_5-of-12 order-metrics">
+                            <div class="metric">
+                                <div class="metric-label">Entregado</div>
+                                <div class="metric-value">{order.deliveredQuantityLabel}</div>
+                                <div class="metric-subvalue">{order.deliveredAmountLabel}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Pagado</div>
+                                <div class="metric-value">{order.paymentMethodLabel}</div>
+                                <div class="metric-subvalue">{order.paidAmountLabel}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="timeline slds-m-top_small" role="list" aria-label="Order milestones">
+                        <template for:each={order.events} for:item="evt">
+                            <div key={evt.id} class="timeline-row" role="listitem">
+                                <div class="timeline-icon" aria-hidden="true">
+                                    <lightning-icon icon-name={evt.icon} size="x-small" alternative-text=""></lightning-icon>
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="timeline-top">
+                                        <div class="timeline-title">{evt.title}</div>
+                                        <div class="timeline-date">{evt.dateLabel}</div>
+                                    </div>
+                                    <div class="timeline-subtitle">{evt.subtitle}</div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="order-notes slds-text-body_small slds-m-top_small">
+                        <lightning-icon icon-name="utility:info" size="x-small" alternative-text=""></lightning-icon>
+                        <span class="slds-m-left_x-small">{order.notes}</span>
+                    </div>
+                </article>
+            </template>
+        </div>
+    </section>
+</template>
