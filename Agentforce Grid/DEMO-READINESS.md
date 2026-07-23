@@ -81,7 +81,28 @@ Opcionalmente se puede agregar una columna intermedia que convierta `HIGH/MEDIUM
 
 ## Columna AI: Outreach Email
 
-La comparación textual directa contra el SINGLE_SELECT no fue confiable por API en esta org. Para una ejecución demostrablemente acotada, guardar primero la columna sin reprocesar y ejecutar sólo las celdas HIGH con:
+Run Conditions tampoco valida una referencia directa al campo Currency
+`Demo Accounts.AnnualRevenue` en esta org: incluso `AnnualRevenue > 3` devuelve
+`Syntax error. Extra E7`. La inspección de las celdas mostró que el mismo campo
+se expone como `INTEGER` en unas filas y `DOUBLE` en otras; los importes grandes
+se sustituyen en notación científica, por ejemplo `1.25E7`, que el parser no
+acepta. Es un defecto de tipado/serialización de Grid v67, no del operador ni
+del umbral.
+
+Workaround validado en esta org:
+
+1. Crear una Formula booleana `Is High Priority` a partir de la clasificación:
+   `"{{ ref('AI - Classification', 'content.identifier') }}" = "HIGH"`.
+2. En Run Conditions referenciar el campo `result` de esa Formula:
+   `{{ ref('Is High Priority', 'result') }}`.
+
+No usar `{{ ref('Is High Priority', '') }}`: la celda Formula es un objeto con
+las propiedades `formula` y `result`, y la referencia al objeto completo falla
+la validación.
+
+Para una ejecución demostrablemente acotada, usar `Advanced Filter` para dejar
+visibles solamente las filas HIGH, guardar la columna sin reprocesar y ejecutar
+sólo esas celdas con:
 
 ```json
 {
