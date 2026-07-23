@@ -1,0 +1,21 @@
+<template>
+    <div lwc:if={hideButton}>
+        <!-- Track, but do not display the reactive attribute(s) -->
+        <span hidden><lightning-formatted-text value={reactiveValue} onchange={handleButtonClick}></lightning-formatted-text></span>
+    </div>
+    <div lwc:else class={buttonPadding}>
+        <template lwc:if={buttonStyle}>
+            <button class={styledButtonClass} style={buttonStyle} type="button" onclick={handleButtonClick}>
+                <lightning-icon lwc:if={hasIconLeft} icon-name={iconName} size="x-small" class="slds-button__icon slds-button__icon_left"></lightning-icon>
+                {buttonLabel}
+                <lightning-icon lwc:if={hasIconRight} icon-name={iconName} size="x-small" class="slds-button__icon slds-button__icon_right"></lightning-icon>
+            </button>
+        </template>
+        <template lwc:else>
+            <lightning-button label={buttonLabel} icon-name={iconName} icon-position={iconPosition} variant={buttonVariant} stretch={stretchButton} onclick={handleButtonClick}></lightning-button>
+        </template>
+    </div>
+    <div lwc:if={showFlow} class={buttonPadding}>
+        <lightning-flow flow-api-name={flowToLaunch} flow-finish-behavior={flowFinishBehavior} flow-input-variables={flowParams} onstatuschange={handleStatusChange}></lightning-flow>
+    </div>
+</template>

@@ -1,0 +1,14 @@
+/*
+ * flowLauncherSObject.css
+ *
+ * Customise the button and inline-flow wrapper rendered by the
+ * Flow Launcher SObject screen component.
+ */
+
+:host {
+    display: block;
+}
+
+div lightning-flow {
+    display: block;
+}

@@ -41,6 +41,7 @@ $RECYCLE.BIN/
 
 # Local environment variables
 .env
+.mcp.json
 
 # Local debug / duplicate workspace (do not publish)
 .husky/

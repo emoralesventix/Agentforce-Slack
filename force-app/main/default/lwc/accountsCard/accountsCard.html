@@ -1,0 +1,96 @@
+<template>
+    <lightning-card>
+        <span slot="title">Accounts</span>
+        <lightning-button-icon
+            slot="actions"
+            icon-name="utility:expand"
+            variant="container"
+            alternative-text="Expand"
+            title="Expand"
+            onclick={handleExpand}
+        ></lightning-button-icon>
+
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+
+            <!-- Error state -->
+            <template if:true={hasError}>
+                <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                    <lightning-icon
+                        icon-name="utility:error"
+                        alternative-text="Error"
+                        size="x-small"
+                        class="slds-m-right_x-small"
+                    ></lightning-icon>
+                    {error}
+                </div>
+            </template>
+
+            <!-- Contact rows -->
+            <template if:true={hasContacts}>
+                <template for:each={contacts} for:item="contact">
+                    <div key={contact.id} class="c-tile slds-grid slds-gutters_small slds-m-bottom_small">
+
+                        <!-- Object icon -->
+                        <div class="c-tile__icon slds-col slds-grow-none">
+                            <lightning-icon
+                                icon-name="standard:contact"
+                                size="small"
+                                alternative-text="Contact"
+                            ></lightning-icon>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="c-tile__content slds-col slds-has-flexi-truncate">
+                            <!-- Name as text link -->
+                            <div class="slds-m-bottom_xx-small">
+                                <a
+                                    href={contact.link}
+                                    class="c-tile__link slds-truncate"
+                                    title={contact.name}
+                                    onclick={handleAccountClick}
+                                    data-id={contact.id}
+                                >{contact.name}</a>
+                            </div>
+
+                            <!-- Key-value pairs -->
+                            <div class="slds-grid slds-gutters_xx-small c-tile__body">
+                                <div class="slds-col slds-grow-none c-tile__labels">
+                                    <div class="c-tile__label">Title:</div>
+                                    <div class="c-tile__label">Role:</div>
+                                </div>
+                                <div class="slds-col slds-has-flexi-truncate c-tile__values">
+                                    <div class="c-tile__value c-tile__value--primary slds-truncate" title={contact.title}>{contact.title}</div>
+                                    <div class="c-tile__value slds-truncate" title={contact.role}>{contact.role}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Overflow menu -->
+                        <div class="c-tile__overflow slds-col slds-grow-none">
+                            <lightning-button-icon
+                                icon-name="utility:down"
+                                variant="bare"
+                                size="x-small"
+                                alternative-text="More actions"
+                                title="More actions"
+                                data-id={contact.id}
+                                onclick={handleMenuToggle}
+                            ></lightning-button-icon>
+                        </div>
+
+                    </div>
+                </template>
+            </template>
+
+            <!-- Empty state -->
+            <template if:false={hasContacts}>
+                <template if:false={hasError}>
+                    <div class="slds-align_absolute-center slds-p-around_medium c-tile__empty">
+                        <p class="slds-text-color_weak">No contacts to display.</p>
+                    </div>
+                </template>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

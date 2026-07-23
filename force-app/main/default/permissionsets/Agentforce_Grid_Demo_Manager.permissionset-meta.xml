@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Grants the Manage Agentforce Grids permission for the Vantegrate Agentforce Grid demo.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Agentforce Grid Demo Manager</label>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>AIWorkbenchUser</name>
+    </userPermissions>
+</PermissionSet>

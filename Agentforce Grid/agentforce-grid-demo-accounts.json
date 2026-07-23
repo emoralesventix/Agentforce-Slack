@@ -1,0 +1,139 @@
+{
+  "records": [
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount01" },
+      "Name": "AF Grid Demo 01 - Acme Analytics",
+      "Industry": "Technology",
+      "AnnualRevenue": 12500000,
+      "NumberOfEmployees": 180,
+      "Website": "https://example.com/acme-analytics",
+      "BillingCity": "Buenos Aires"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount02" },
+      "Name": "AF Grid Demo 02 - Andina Cloud",
+      "Industry": "Technology",
+      "AnnualRevenue": 8200000,
+      "NumberOfEmployees": 95,
+      "Website": "https://example.com/andina-cloud",
+      "BillingCity": "Cordoba"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount03" },
+      "Name": "AF Grid Demo 03 - Plata Logistics",
+      "Industry": "Transportation",
+      "AnnualRevenue": 18400000,
+      "NumberOfEmployees": 420,
+      "Website": "https://example.com/plata-logistics",
+      "BillingCity": "Rosario"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount04" },
+      "Name": "AF Grid Demo 04 - Patagonia Energy",
+      "Industry": "Energy",
+      "AnnualRevenue": 32700000,
+      "NumberOfEmployees": 610,
+      "Website": "https://example.com/patagonia-energy",
+      "BillingCity": "Neuquen"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount05" },
+      "Name": "AF Grid Demo 05 - Rio Fintech",
+      "Industry": "Finance",
+      "AnnualRevenue": 6900000,
+      "NumberOfEmployees": 75,
+      "Website": "https://example.com/rio-fintech",
+      "BillingCity": "Buenos Aires"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount06" },
+      "Name": "AF Grid Demo 06 - MediCare Sur",
+      "Industry": "Healthcare",
+      "AnnualRevenue": 3100000,
+      "NumberOfEmployees": 82,
+      "Website": "https://example.com/medicare-sur",
+      "BillingCity": "Mendoza"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount07" },
+      "Name": "AF Grid Demo 07 - Educa Latam",
+      "Industry": "Education",
+      "AnnualRevenue": 4700000,
+      "NumberOfEmployees": 140,
+      "Website": "https://example.com/educa-latam",
+      "BillingCity": "Santiago"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount08" },
+      "Name": "AF Grid Demo 08 - Cordillera Foods",
+      "Industry": "Food & Beverage",
+      "AnnualRevenue": 2200000,
+      "NumberOfEmployees": 68,
+      "Website": "https://example.com/cordillera-foods",
+      "BillingCity": "Santiago"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount09" },
+      "Name": "AF Grid Demo 09 - Horizonte Retail",
+      "Industry": "Retail",
+      "AnnualRevenue": 1500000,
+      "NumberOfEmployees": 44,
+      "Website": "https://example.com/horizonte-retail",
+      "BillingCity": "Montevideo"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount10" },
+      "Name": "AF Grid Demo 10 - Vantegrate Consulting",
+      "Industry": "Consulting",
+      "AnnualRevenue": 5000000,
+      "NumberOfEmployees": 110,
+      "Website": "https://example.com/vantegrate-consulting",
+      "BillingCity": "Buenos Aires"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount11" },
+      "Name": "AF Grid Demo 11 - Pampa Apparel",
+      "Industry": "Apparel",
+      "AnnualRevenue": 850000,
+      "NumberOfEmployees": 27,
+      "Website": "https://example.com/pampa-apparel",
+      "BillingCity": "La Plata"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount12" },
+      "Name": "AF Grid Demo 12 - Delta Media",
+      "Industry": "Media",
+      "AnnualRevenue": 620000,
+      "NumberOfEmployees": 19,
+      "Website": "https://example.com/delta-media",
+      "BillingCity": "Montevideo"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount13" },
+      "Name": "AF Grid Demo 13 - Norte Construction",
+      "Industry": "Construction",
+      "AnnualRevenue": 980000,
+      "NumberOfEmployees": 35,
+      "Website": "https://example.com/norte-construction",
+      "BillingCity": "Salta"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount14" },
+      "Name": "AF Grid Demo 14 - Litoral Hospitality",
+      "Industry": "Hospitality",
+      "AnnualRevenue": 430000,
+      "NumberOfEmployees": 16,
+      "Website": "https://example.com/litoral-hospitality",
+      "BillingCity": "Santa Fe"
+    },
+    {
+      "attributes": { "type": "Account", "referenceId": "GridDemoAccount15" },
+      "Name": "AF Grid Demo 15 - Austral Manufacturing",
+      "Industry": "Manufacturing",
+      "AnnualRevenue": 760000,
+      "NumberOfEmployees": 31,
+      "Website": "https://example.com/austral-manufacturing",
+      "BillingCity": "Ushuaia"
+    }
+  ]
+}

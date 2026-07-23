@@ -27,18 +27,68 @@
 
 ### 1. The Demo (core — ~10–12 of the 20 minutes)
 
-- [ ] **Figma design file** of a realistic component (candidate: customer account card or performance dashboard widget — existing `accountStatementDemo` / `stationPerformanceDashboardDemo` LWCs can inspire it). Build it with the official **SLDS 2 Figma kits** so tokens map cleanly to Lightning styling hooks.
-- [ ] **Figma MCP server** connected to **Agentforce Vibes** in VS Code — the "wow" moment: the AI reads real design tokens/layout from Figma.
-- [ ] **Demo org** with a target app page ready, so the generated LWC drops in and renders live.
-- [ ] **Code Analyzer run** on the generated component (governance beat) + slide-level Trust Layer mention.
+- [x] **Figma MCP connected to Agentforce Vibes** — DONE (July 4): Framelink MCP server connected in the Vibes Toolkit (free Figma account, personal access token). See FIGMA-VIBES-SETUP.md.
+- [x] **End-to-end proof** — DONE (July 4): SLDS 2 kit "Accounts" card → `get_figma_data` → generated `accountsCard` LWC in 1m44s with lightning base components + `--slds-g-*` styling hooks, zero hardcoded colors.
+- [ ] **Wire to real org data** — Apex controller + `@wire` (Contacts with Title), test class, deploy, drag onto page in App Builder.
+- [x] **Demo component CHOSEN** (July 4): the **Agentforce chat panel** from the SLDS 2 Agentic
+  Experience kit (Patterns → Panel) — header, agent/user conversation, embedded record card
+  (Vandelay Industries example), feedback buttons, "Describe your task…" input. Select ONLY the
+  panel frame, not the surrounding Builder screen. Working name: `agentPanel`.
+  - Why: it *is* the "Agentic UI" of the title; the embedded record card reuses the accountsCard
+    data-wiring story (agent surfaces real org data in conversation).
+  - [ ] Test-convert it with Vibes (same flow as accountsCard) to confirm it generates cleanly.
+- [ ] **Code Analyzer run** on the generated component (governance beat, learning objective #3) + slide-level Trust Layer mention.
 - [ ] **Pre-built "golden" version** of the component (fallback if live generation misbehaves).
 - [ ] **Backup screen recording** of the full demo (conference Wi-Fi insurance — never demo without it).
+- [ ] **Figma paid Dev seat** (Sept–Oct) for the desktop MCP "current selection" flow + rehearsal rate-limit headroom; free-plan Framelink path proven as fallback.
 
 ### 2. The Content
 
 - [ ] Slide deck on the official Dreamforce template (minimal — theater sessions live on the demo).
 - [ ] Talk track split between Esteban and Josue (e.g., one drives the demo, the other narrates concepts; swap at governance).
 - [ ] **Companion GitHub repo + QR code** (same playbook as the TDX Agentforce-Slack repo): Figma file link, exact prompts, generated code, setup instructions.
+
+### 2.4 Making the generated UI REAL (the "is it just a shell?" answer)
+
+A Figma-generated component is view-layer only — data and behavior are wired afterward. Three
+levels, each with a place in the session:
+
+| Level | What | Where it's shown |
+|---|---|---|
+| 1. Static shell | Generated panel renders scripted `@api` data | (skip — invites "does it do anything?") |
+| 2. Wired UI | Apex + `@wire` feeds real org data (accountsCard pattern) | **Live demo core** |
+| 3a. **ACC integration** | Generated UI calls `lightning/accApi`: `open(botId)` + `execute(utterance, botId)` → the REAL Agentforce panel opens and a REAL agent answers. ~5 lines of JS, no Connected App/Named Credential. | **Live demo finale** |
+| 3b. Agent API custom surface | Custom chat UI rendering agent responses via the Agent API (Apex + Named Credential + Connected App) | Companion repo + backup video only |
+
+ACC facts (verified, [official doc](https://developer.salesforce.com/docs/platform/accsdk/guide/acc-api.html)):
+module `lightning/accApi`; methods `open(botId?)`, `execute(utterance, botId)` (queued, does NOT
+return the agent's text response — it drives the standard panel), `close()`. Requires API 59+,
+Lightning Experience desktop, Agentforce enabled. Bot ID comes from the Agent Builder URL.
+We already have agents in the org (`Agentforce_Management_Assistant`, `Vantegrate_Agent`) to
+target.
+
+### 2.5 What goes in the LIVE DEMO vs the DECK
+
+**Live demo (screen time, ~10–12 min):**
+1. Figma: show the Agentic Experience kit, select the Agentforce panel frame, copy link (30s).
+2. Vibes: paste the prepared prompt → approve `get_figma_data` → narrate the 4-step MCP workflow
+   while it generates (~2 min of generation = narration window).
+3. Show the generated files: point at `lightning-*` base components and `--slds-g-*` hooks — "zero
+   hardcoded colors" (1 min).
+4. Deploy + Lightning App Builder: drag `agentPanel` onto a page, side-by-side with the Figma
+   original (2 min).
+5. Governance: `sf code-analyzer` run on the generated component (2 min).
+
+**Deck only (no live demo needed):**
+- The construction analogy / architecture slide (Vibes = manager, Figma link = blueprint,
+  MCPs = building code) — from the official SLDS "Vibe Coding and SLDS" page.
+- Figma kits overview slide: the 4 SLDS 2 kits + what a kit gives you (tokens → styling hooks).
+- "Up to 30% more accurate code" stat (official AI Tools page).
+- Trust Layer slide (learning objective #3, paired with the live Code Analyzer moment).
+- Free vs paid Figma paths (Framelink vs Dev Mode MCP) — attendees will ask; one table slide.
+- **Astro sticker sheet from the Agentic Experience kit = approved deck art** (follow the kit's
+  Branding Guidelines: use provided avatar, don't alter).
+- QR code → companion repo.
 
 ### 3. Proposed 20-Minute Structure
 

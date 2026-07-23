@@ -1,0 +1,91 @@
+/* Card border radius matches Figma (20px) */
+:host {
+    display: block;
+}
+
+/* ── Tile row ─────────────────────────────────────────────── */
+.c-tile {
+    align-items: flex-start;
+    border-bottom: 1px solid var(--slds-g-color-border-2, #e5e5e5);
+    padding-bottom: var(--slds-g-spacing-3, 0.75rem);
+}
+
+.c-tile:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* ── Icon column ─────────────────────────────────────────── */
+.c-tile__icon {
+    padding-top: var(--slds-g-spacing-1, 0.25rem);
+}
+
+/* ── Content area ────────────────────────────────────────── */
+.c-tile__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--slds-g-spacing-1, 0.25rem);
+}
+
+/* Name link — matches Figma #0250D9 accent color */
+.c-tile__link {
+    font-size: var(--slds-g-font-size-base, 0.8125rem);
+    font-weight: var(--slds-g-font-weight-bold, 700);
+    color: var(--slds-g-color-accent-2, #0176d3);
+    text-decoration: none;
+    display: block;
+}
+
+.c-tile__link:hover,
+.c-tile__link:focus {
+    text-decoration: underline;
+    outline-offset: 2px;
+}
+
+/* Key-value grid ─────────────────────────────────────────── */
+.c-tile__body {
+    align-items: flex-start;
+}
+
+.c-tile__labels {
+    display: flex;
+    flex-direction: column;
+    gap: var(--slds-g-spacing-1, 0.25rem);
+    /* Fixed width keeps label column aligned; no SLDS hook covers this */
+    min-width: 4.5rem;
+}
+
+.c-tile__label {
+    font-size: var(--slds-g-font-size-base, 0.8125rem);
+    color: var(--slds-g-color-on-surface-3, #001e5b);
+    white-space: nowrap;
+}
+
+.c-tile__values {
+    display: flex;
+    flex-direction: column;
+    gap: var(--slds-g-spacing-1, 0.25rem);
+}
+
+.c-tile__value {
+    font-size: var(--slds-g-font-size-base, 0.8125rem);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+}
+
+/* Primary value (VP of Sales row) inherits same dark navy as label */
+.c-tile__value--primary {
+    color: var(--slds-g-color-on-surface-3, #001e5b);
+}
+
+/* ── Overflow column ─────────────────────────────────────── */
+.c-tile__overflow {
+    display: flex;
+    align-items: flex-start;
+    padding-top: var(--slds-g-spacing-1, 0.25rem);
+}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.c-tile__empty {
+    color: var(--slds-g-color-on-surface-1, #5c5c5c);
+    font-size: var(--slds-g-font-size-base, 0.8125rem);
+}

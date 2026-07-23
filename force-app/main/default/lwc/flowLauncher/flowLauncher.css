@@ -1,0 +1,19 @@
+/*
+ * flowLauncher.css
+ *
+ * Customise the button and inline-flow wrapper rendered by the
+ * Flow Launcher screen component.
+ */
+
+/* ─── Button wrapper spacing ──────────────────────────────────── */
+/* The padding class is also configurable via the "Button Padding"
+   property in Flow Builder, but you can override globally here. */
+:host {
+    display: block;
+}
+
+/* ─── Inline flow container ───────────────────────────────────── */
+/* Applied when the flow runs inline (not in a modal). */
+div lightning-flow {
+    display: block;
+}

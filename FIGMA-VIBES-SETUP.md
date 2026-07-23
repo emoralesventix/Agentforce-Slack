@@ -188,6 +188,7 @@ Official example prompt (adapt to our component):
 | Agentforce Vibes IDE / Code Builder (overview) | https://developer.salesforce.com/docs/platform/code-builder/guide/codebuilder-overview.html |
 | Einstein for Developers docs (Vibes docs home) | https://developer.salesforce.com/docs/platform/einstein-for-devs/overview |
 | LWC Developer Guide | https://developer.salesforce.com/docs/platform/lwc/guide |
+| **Agentforce Conversation Client (ACC) API** — `lightning/accApi`: open/execute/close the real Agentforce panel from a custom LWC (demo finale) | https://developer.salesforce.com/docs/platform/accsdk/guide/acc-api.html |
 | Trailhead: Agentforce Vibes / Einstein for Developers | https://trailhead.salesforce.com/content/learn/modules/einstein-for-developers |
 
 ### Figma — MCP server & tokens (figma.com)

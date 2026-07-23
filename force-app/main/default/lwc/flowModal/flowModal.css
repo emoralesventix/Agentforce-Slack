@@ -1,0 +1,40 @@
+/*
+ * flowModal.css
+ *
+ * Customise the modal container that wraps launched flows.
+ *
+ * SLDS design tokens are available for colours, spacing, etc.
+ * See: https://www.lightningdesignsystem.com/design-tokens/
+ *
+ * Note: the modal chrome (backdrop, border-radius, box-shadow) is owned by
+ * lightning-modal and cannot be overridden from here due to Shadow DOM.
+ * Use the variables below for the content area instead.
+ */
+
+/* ─── Modal body padding ──────────────────────────────────────── */
+/* Tighten or widen the space around the embedded flow. */
+:host {
+    --modal-body-padding: var(--lwc-spacingMedium, 1rem);
+}
+
+lightning-modal-body {
+    padding: var(--modal-body-padding);
+}
+
+/* ─── Header customisation ────────────────────────────────────── */
+/*
+ * The header text colour and font come from the SLDS modal spec.
+ * Uncomment and adjust to override:
+ *
+lightning-modal-header {
+    background-color: var(--lwc-colorBrand, #0176d3);
+    color: #ffffff;
+}
+*/
+
+/* ─── Loading / spinner state ─────────────────────────────────── */
+/* If you want a minimum height while the flow initialises: */
+lightning-flow {
+    display: block;
+    min-height: 8rem;
+}

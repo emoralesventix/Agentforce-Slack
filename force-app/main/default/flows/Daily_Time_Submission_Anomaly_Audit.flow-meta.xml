@@ -8,7 +8,7 @@
         <actionName>TimeEntryAuditQueryService</actionName>
         <actionType>apex</actionType>
         <connector>
-            <targetReference>Send_Time_Audit_with_Management_Assistant</targetReference>
+            <targetReference>Wake_up_and_analyze_data</targetReference>
         </connector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -39,8 +39,8 @@
         </outputParameters>
     </actionCalls>
     <actionCalls>
-        <name>Send_Time_Audit_with_Management_Assistant</name>
-        <label>Send Time Audit with Management Assistant</label>
+        <name>Wake_up_and_analyze_data</name>
+        <label>Wake up and Analyze data - Slack Notification</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <actionName>Agentforce_Management_Assistant</actionName>
@@ -50,12 +50,6 @@
             <typeName>U__agentResponseApex</typeName>
         </dataTypeMappings>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>sessionId</name>
-            <value>
-                <elementReference>$Flow.InterviewGuid</elementReference>
-            </value>
-        </inputParameters>
         <inputParameters>
             <name>userMessage</name>
             <value>
@@ -72,7 +66,7 @@ The Flow already loaded Salesforce data via Apex (Time_Entry__c, Project_Assignm
 TimeEntryAuditJson:
 {!var_audit_json}
 
-Instructions: Follow topic Daily_Time_Audit_Slack — anomaly checks, trajectory, and one Slack post to TargetChannelId when there is something material. Use this JSON as the source of truth for time entries and assignments; you may still use Query Records only for Holiday and weekly Time_Entry__c burn (last 7 days) using ReportDate / ReportDateEnd literals and Ids from the JSON. Build Slack links from the topic BASE URL; human-readable names only in prose. Post the message without asking user confirmation!
+Instructions: Follow topic Daily_Time_Audit_Slack — anomaly checks, Analysis, and one Slack post to TargetChannelId when there is something material. Use this JSON as the source of truth for time entries and assignments; you may still use Query Records only for Holiday and weekly Time_Entry__c burn (last 7 days) using ReportDate / ReportDateEnd literals and Ids from the JSON. Build Slack links from the topic BASE URL; human-readable names only in prose. Post the message without asking user confirmation!
 
 </stringValue>
             </value>
